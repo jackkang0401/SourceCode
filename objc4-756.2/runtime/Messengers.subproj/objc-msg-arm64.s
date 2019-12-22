@@ -327,12 +327,22 @@ LExit$0:
  *
  */
 
+/*
+ * .align $
+ *
+ * 我们知道 arm 是 32 位处理器，如果在ARM指令状态下，所有指令的执行都是按照 4 的倍数进行执行的，而到 reset
+ * 这个地址处时，发现地址为 30008026 不是 4 的倍数，于是就自动归到 30008024 处执行，此时便会出错
+ *
+ * 在指令出现非对齐情况下，可以在下面插入 .align，加上 .align 汇编语句后，指令就对齐
+ *
+ */
+
 #if SUPPORT_TAGGED_POINTERS
 	.data
 	.align 3
 	.globl _objc_debug_taggedpointer_classes
 _objc_debug_taggedpointer_classes:
-	.fill 16, 8, 0 // .fill repeat, size, value:反复拷贝 size 个字节，重复 repeat 次(其中 size 和 value 是可选的，默认值分别为 1 和 0 )
+	.fill 16, 8, 0     // .fill repeat, size, value:反复拷贝 size 个字节，重复 repeat 次(其中 size 和 value 是可选的，默认值分别为 1 和 0 )
 	.globl _objc_debug_taggedpointer_ext_classes
 _objc_debug_taggedpointer_ext_classes:
 	.fill 256, 8, 0
@@ -369,7 +379,8 @@ LNilOrTagged:               // Tagged Pointer 指针最高位是1(符号位)，�
     // 位段提取指令 将 x0 中 60 位起偏移 4 位提取到 x11 最低有效位(其实就是提取 index )
 	ubfx	x11, x0, #60, #4
 
-    // 将存储器地址为 x10＋x11<<3 的字数据读入寄存器 x16，左移三位是因为 _objc_debug_taggedpointer_classes 是 8 个 byte 为单位来偏移的
+    // 将存储器地址为 x10＋x11<<3 的字数据读入寄存器 x16，
+    // 左移三位是因为 _objc_debug_taggedpointer_classes 是 8 个 byte 为单位来偏移的
 	ldr	x16, [x10, x11, LSL #3]
 	adrp	x10, _OBJC_CLASS_$___NSUnrecognizedTaggedPointer@PAGE
 	add	x10, x10, _OBJC_CLASS_$___NSUnrecognizedTaggedPointer@PAGEOFF
