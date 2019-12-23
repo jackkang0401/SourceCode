@@ -1926,10 +1926,13 @@ static Class realizeClassWithoutSwift(Class cls)
     // fixme verify class is not in an un-dlopened part of the shared cache?
 
     ro = (const class_ro_t *)cls->data();
+    // 判断是否为未来的类（即 RO_FUTURE 标志着读写数据是否已经被分配）
+    // 可读可写表和只读表的首个成员均为 flags 且 RO_FUTURE 与 RW_FUTURE 实际值相同
     if (ro->flags & RO_FUTURE) {
         // This was a future class. rw data is already allocated.
         rw = cls->data();
         ro = cls->data()->ro;
+        // 更新标记位
         cls->changeInfo(RW_REALIZED|RW_REALIZING, RW_FUTURE);
     } else {
         // Normal class. Allocate writeable class data.

@@ -112,7 +112,7 @@
 #if !SUPPORT_INDEXED_ISA  &&  !SUPPORT_PACKED_ISA
 #   define SUPPORT_NONPOINTER_ISA 0
 #else
-#   define SUPPORT_NONPOINTER_ISA 1
+#   define SUPPORT_NONPOINTER_ISA 1     // 是否支持优化的isa 指针
 #endif
 
 // Define SUPPORT_FIXUP=1 to repair calls sites for fixup dispatch.

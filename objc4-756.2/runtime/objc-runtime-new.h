@@ -414,66 +414,71 @@ struct locstamped_category_list_t {
 // These are emitted by the compiler and are part of the ABI.
 // Note: See CGObjCNonFragileABIMac::BuildClassRoTInitializer in clang
 // class is a metaclass
-#define RO_META               (1<<0)
+#define RO_META               (1<<0)                // 类是元类
 // class is a root class
-#define RO_ROOT               (1<<1)
+#define RO_ROOT               (1<<1)                // 类是根类
 // class has .cxx_construct/destruct implementations
-#define RO_HAS_CXX_STRUCTORS  (1<<2)
+#define RO_HAS_CXX_STRUCTORS  (1<<2)                // 类有CXX构造/析构函数
 // class has +load implementation
 // #define RO_HAS_LOAD_METHOD    (1<<3)
 // class has visibility=hidden set
-#define RO_HIDDEN             (1<<4)
+#define RO_HIDDEN             (1<<4)                // 隐藏类
 // class has attribute(objc_exception): OBJC_EHTYPE_$_ThisClass is non-weak
 #define RO_EXCEPTION          (1<<5)
 // class has ro field for Swift metadata initializer callback
 #define RO_HAS_SWIFT_INITIALIZER (1<<6)
 // class compiled with ARC
-#define RO_IS_ARC             (1<<7)
+#define RO_IS_ARC             (1<<7)                // 类使用ARC选项编译
 // class has .cxx_destruct but no .cxx_construct (with RO_HAS_CXX_STRUCTORS)
-#define RO_HAS_CXX_DTOR_ONLY  (1<<8)
+#define RO_HAS_CXX_DTOR_ONLY  (1<<8)                // 类有CXX析构函数，但没有CXX构造函数
 // class is not ARC but has ARC-style weak ivar layout 
 #define RO_HAS_WEAK_WITHOUT_ARC (1<<9)
 // class does not allow associated objects on instances
-#define RO_FORBIDS_ASSOCIATED_OBJECTS (1<<10)
+#define RO_FORBIDS_ASSOCIATED_OBJECTS (1<<10)       // 类禁止使用关联对象
 
 // class is in an unloadable bundle - must never be set by compiler
 #define RO_FROM_BUNDLE        (1<<29)
 // class is unrealized future class - must never be set by compiler
-#define RO_FUTURE             (1<<30)
+#define RO_FUTURE             (1<<30)               // 判断是否为未来的类（即 RO_FUTURE 标志着读写数据是否已经被分配）
 // class is realized - must never be set by compiler
 #define RO_REALIZED           (1<<31)
 
 // Values for class_rw_t->flags
 // These are not emitted by the compiler and are never used in class_ro_t. 
 // Their presence should be considered in future ABI versions.
+
 // class_t->data is class_rw_t, not class_ro_t
-#define RW_REALIZED           (1<<31)
+#define RW_REALIZED           (1<<31)                   // 类是已经注册的类
 // class is unresolved future class
-#define RW_FUTURE             (1<<30)
+#define RW_FUTURE             (1<<30)                   // 类是尚未解析的 future class
 // class is initialized
-#define RW_INITIALIZED        (1<<29)
+#define RW_INITIALIZED        (1<<29)                   // 类是已经初始化的类
 // class is initializing
-#define RW_INITIALIZING       (1<<28)
+#define RW_INITIALIZING       (1<<28)                   // 类是正在初始化的类
 // class_rw_t->ro is heap copy of class_ro_t
+// class_rw_t->ro是class_ro_t的堆拷贝
+// 此时类的class_rw_t->ro是可写入的，拷贝之前ro的内存区域锁死不可写入
 #define RW_COPIED_RO          (1<<27)
 // class allocated but not yet registered
-#define RW_CONSTRUCTING       (1<<26)
+#define RW_CONSTRUCTING       (1<<26)                   // 类是正在构建而仍未注册的类
 // class allocated and registered
-#define RW_CONSTRUCTED        (1<<25)
+#define RW_CONSTRUCTED        (1<<25)                   // 类是已经构建完成并注册的类
 // available for use; was RW_FINALIZE_ON_MAIN_THREAD
 // #define RW_24 (1<<24)
 // class +load has been called
-#define RW_LOADED             (1<<23)
+#define RW_LOADED             (1<<23)                   // 类是load方法已经调用过的类
 #if !SUPPORT_NONPOINTER_ISA
 // class instances may have associative references
+// 类是可能实例可能存在关联对象的类
+// 默认编译选项下，无需定义该位，因为都可能有关联对象
 #define RW_INSTANCES_HAVE_ASSOCIATED_OBJECTS (1<<22)
 #endif
 // class has instance-specific GC layout
-#define RW_HAS_INSTANCE_SPECIFIC_LAYOUT (1 << 21)
+#define RW_HAS_INSTANCE_SPECIFIC_LAYOUT (1 << 21)       // 类是具有实例相关的 GC layout 的类
 // class does not allow associated objects on its instances
-#define RW_FORBIDS_ASSOCIATED_OBJECTS       (1<<20)
+#define RW_FORBIDS_ASSOCIATED_OBJECTS       (1<<20)     // 类是禁止使用关联对象的类
 // class has started realizing but not yet completed it
-#define RW_REALIZING          (1<<19)
+#define RW_REALIZING          (1<<19)                   // 类已开始分配，但并未完成(类是正在注册，但是未注册完成的类)
 
 // NOTE: MORE RW_ FLAGS DEFINED BELOW
 
@@ -517,17 +522,17 @@ struct locstamped_category_list_t {
 // Note this is is stored in the metaclass.
 #define RW_HAS_DEFAULT_AWZ    (1<<16)
 // class's instances requires raw isa
-#define RW_REQUIRES_RAW_ISA   (1<<15)
+#define RW_REQUIRES_RAW_ISA   (1<<15)           // 当前类是否使用纯指针表示
 
 // class is a Swift class from the pre-stable Swift ABI
-#define FAST_IS_SWIFT_LEGACY    (1UL<<0)
+#define FAST_IS_SWIFT_LEGACY    (1UL<<0)        // Swift 类是否来自于尚不稳定的 Swift ABI
 // class is a Swift class from the stable Swift ABI
-#define FAST_IS_SWIFT_STABLE    (1UL<<1)
+#define FAST_IS_SWIFT_STABLE    (1UL<<1)        // Swift 类是否来自于稳定的 Swift ABI
 // class or superclass has default retain/release/autorelease/retainCount/
 //   _tryRetain/_isDeallocating/retainWeakReference/allowsWeakReference
 #define FAST_HAS_DEFAULT_RR     (1UL<<2)
 // data pointer
-#define FAST_DATA_MASK          0x00007ffffffffff8UL
+#define FAST_DATA_MASK          0x00007ffffffffff8UL        // 指向 class_rw_t 的指针 （44 bit）
 
 #else
 // Leaks-incompatible version that steals lots of bits.
