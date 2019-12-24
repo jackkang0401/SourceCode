@@ -487,6 +487,7 @@ struct locstamped_category_list_t {
 // These flags are optimized for retain/release and alloc/dealloc
 // 64-bit stores more of them in class_t->bits to reduce pointer indirection.
 
+// 不是 64 位
 #if !__LP64__
 
 // class or superclass has .cxx_construct implementation
@@ -511,7 +512,7 @@ struct locstamped_category_list_t {
 // data pointer
 #define FAST_DATA_MASK        0xfffffffcUL
 
-#elif 1
+#elif 1  // 这里为 1, 不会走后边的 #else
 // Leaks-compatible version that steals low bits only.
 
 // class or superclass has .cxx_construct implementation
@@ -1536,6 +1537,7 @@ struct message_ref_t {
 
 extern Method protocol_getMethod(protocol_t *p, SEL sel, bool isRequiredMethod, bool isInstanceMethod, bool recursive);
 
+// 可以理解为二叉树的深度优先遍历 firstSubclass、nextSiblingClass 左右叶子节点
 static inline void
 foreach_realized_class_and_subclass_2(Class top, unsigned& count,
                                       std::function<bool (Class)> code) 
