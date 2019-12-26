@@ -5167,6 +5167,7 @@ static void resolveInstanceMethod(Class cls, SEL sel, id inst)
 
     // Cache the result (good or bad) so the resolver doesn't fire next time.
     // +resolveInstanceMethod adds to self a.k.a. cls
+    // 缓存结果(好或坏)，这样解析器下次就不会触发
     IMP imp = lookUpImpOrNil(cls, sel, inst, 
                              NO/*initialize*/, YES/*cache*/, NO/*resolver*/);
 
@@ -5286,7 +5287,10 @@ IMP lookUpImpOrForward(Class cls, SEL sel, id inst,
     // Otherwise, a category could be added but ignored indefinitely because
     // the cache was re-filled with the old value after the cache flush on
     // behalf of the category.
-
+    
+    // runtimeLock在方法搜索期间保持，使 method-lookup + cache-fill 对于方法添加是原子性的
+    // 否则，可以添加一个类别，但是可以无限期地忽略它，因为在代表类别的缓存刷新之后，用旧值重新填充缓存
+    
     runtimeLock.lock();
     checkIsKnownClass(cls);
 
@@ -5310,11 +5314,12 @@ IMP lookUpImpOrForward(Class cls, SEL sel, id inst,
     runtimeLock.assertLocked();
 
     // Try this class's cache.
-
+    // 1. 在当前类方法缓存中查找 IMP
     imp = cache_getImp(cls, sel);
     if (imp) goto done;
 
     // Try this class's method lists.
+    // 2. 在当前类方法列表中查找 IMP
     {
         Method meth = getMethodNoSuper_nolock(cls, sel);
         if (meth) {
@@ -5325,6 +5330,7 @@ IMP lookUpImpOrForward(Class cls, SEL sel, id inst,
     }
 
     // Try superclass caches and method lists.
+    // 3. 在父类的方法缓存/方法列表中查找 IMP，依次查找，直到 nil
     {
         unsigned attempts = unreasonableClassCount();
         for (Class curClass = cls->superclass;
@@ -5355,6 +5361,7 @@ IMP lookUpImpOrForward(Class cls, SEL sel, id inst,
             // Superclass method list.
             Method meth = getMethodNoSuper_nolock(curClass, sel);
             if (meth) {
+                // 如果是从父类链中找到的方法，仍然会加入当前类的缓存列表
                 log_and_fill_cache(cls, meth->imp, sel, inst, curClass);
                 imp = meth->imp;
                 goto done;
@@ -5363,7 +5370,7 @@ IMP lookUpImpOrForward(Class cls, SEL sel, id inst,
     }
 
     // No implementation found. Try method resolver once.
-
+    // 4. 没有找到 IMP，尝试进行动态消息处理
     if (resolver  &&  !triedResolver) {
         runtimeLock.unlock();
         resolveMethod(cls, sel, inst);
@@ -5371,12 +5378,12 @@ IMP lookUpImpOrForward(Class cls, SEL sel, id inst,
         // Don't cache the result; we don't hold the lock so it may have 
         // changed already. Re-do the search from scratch instead.
         triedResolver = YES;
-        goto retry;
+        goto retry;      // 因为在动态消息处理的时候可能会插入相关 IMP 然后 goto retry
     }
 
     // No implementation found, and method resolver didn't help. 
     // Use forwarding.
-
+    // 5. 若动态消息处理失败，IMP 指向一个函数并将 IMP 存方法缓存
     imp = (IMP)_objc_msgForward_impcache;
     cache_fill(cls, sel, imp, inst);
 

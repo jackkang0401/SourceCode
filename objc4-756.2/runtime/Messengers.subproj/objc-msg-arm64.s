@@ -121,7 +121,7 @@ _objc_indexed_classes:
 
 #elif __LP64__
 	// 64-bit packed isa
-	and	p16, $0, #ISA_MASK
+	and	p16, $0, #ISA_MASK  // #define ISA_MASK 0x0000000ffffffff8ULL 找到 isa 变量中的 Class 并放入 p16
 
 #else
 	// 32-bit raw isa
@@ -337,6 +337,12 @@ LExit$0:
  *
  */
 
+/*
+ *
+ * arm64 汇编代码会出现很多 p 字母，实际上是一个宏，64 位下是x，32 位下是w，p就是寄存器
+ *
+ */
+
 #if SUPPORT_TAGGED_POINTERS
 	.data
 	.align 3
@@ -358,8 +364,8 @@ _objc_debug_taggedpointer_ext_classes:
 #else
 	b.eq	LReturnZero
 #endif
-	ldr	p13, [x0]		// p13 = isa
-	GetClassFromIsa_p16 p13		// p16 = class
+	ldr	p13, [x0]		// p13 = isa     x0 指向内存的前 64 位放到 p13（即是 objc_object 的 isa 成员变量）
+	GetClassFromIsa_p16 p13		// p16 = class      通过 isa 找到 class
 LGetIsaDone:
 	CacheLookup NORMAL		// calls imp or objc_msgSend_uncached
 
@@ -496,7 +502,7 @@ LLookup_Nil:
 
 
 .macro MethodTableLookup
-	
+	// 将各个寄存器的值先存储到栈上，内部函数帧释放时便于复位寄存器的值
 	// push frame
 	SignLR
 	stp	fp, lr, [sp, #-16]!     // ldp/stp 是 ldr/str 的衍生, 可以同时读/写两个寄存器, ldr/str只能读写一个
@@ -515,7 +521,7 @@ LLookup_Nil:
 	str	x8,     [sp, #(8*16+8*8)]
 
 	// receiver and selector already in x0 and x1
-	mov	x2, x16
+	mov	x2, x16 // 把 x16 的值复制到 x2 中（ x16 存储的就是 GetClassFromIsa_p16 代码找到的对象的 Class ）
 	bl	__class_lookupMethodAndLoadCache3
 
 	// IMP in x0
@@ -564,7 +570,7 @@ LLookup_Nil:
 
 	STATIC_ENTRY _cache_getImp
 
-	GetClassFromIsa_p16 p0
+	GetClassFromIsa_p16 p0              // p0 里存放的即为 isa 指针
 	CacheLookup GETIMP
 
 LGetImpMiss:

@@ -346,6 +346,8 @@ void cache_t::incrementOccupied()
 
 void cache_t::initializeToEmpty()
 {
+    // 将一个数组清零：char str[10]; bzero( str, sizeof(str) );
+    // 也可以将一个结构体清零：struct Node test(结构体变量); bzero(&test, sizeof(test));
     bzero(this, sizeof(*this));
     _buckets = (bucket_t *)&_objc_empty_cache;
 }
@@ -376,10 +378,13 @@ bucket_t *allocateBuckets(mask_t newCapacity)
     // Allocate one extra bucket to mark the end of the list.
     // This can't overflow mask_t because newCapacity is a power of 2.
     // fixme instead put the end mark inline when +1 is malloc-inefficient
+    
+    // 两个参数的乘积就是要分配的内存空间的大小（ 数目 * 元素大小 ）
+    // calloc 在申请后，对空间逐一进行初始化，并设置值为 0
     bucket_t *newBuckets = (bucket_t *)
-        calloc(cache_t::bytesForCapacity(newCapacity), 1);
+        calloc(cache_t::bytesForCapacity(newCapacity), 1); // 申请存储空间，长度为 newCapacity+1
 
-    bucket_t *end = cache_t::endMarker(newBuckets, newCapacity);
+    bucket_t *end = cache_t::endMarker(newBuckets, newCapacity); // 取出最后一个 bucket
 
 #if __arm__
     // End marker's sel is 1 and imp points BEFORE the first bucket.
@@ -471,7 +476,7 @@ void cache_t::reallocate(mask_t oldCapacity, mask_t newCapacity)
     bool freeOld = canBeFreed();
 
     bucket_t *oldBuckets = buckets();
-    bucket_t *newBuckets = allocateBuckets(newCapacity);
+    bucket_t *newBuckets = allocateBuckets(newCapacity); // 方法缓存散列表每次分配内存都会放弃之前的缓存
 
     // Cache's old contents are not propagated. 
     // This is thought to save cache memory at the cost of extra cache fills.
@@ -543,6 +548,7 @@ void cache_t::expand()
     uint32_t oldCapacity = capacity();
     uint32_t newCapacity = oldCapacity ? oldCapacity*2 : INIT_CACHE_SIZE;
 
+    // 越界判断
     if ((uint32_t)(mask_t)newCapacity != newCapacity) {
         // mask overflow - can't grow further
         // fixme this wastes one bit of mask
@@ -571,20 +577,24 @@ static void cache_fill_nolock(Class cls, SEL sel, IMP imp, id receiver)
     mask_t capacity = cache->capacity();
     if (cache->isConstantEmptyCache()) {
         // Cache is read-only. Replace it.
+        // 初始化缓存空间
         cache->reallocate(capacity, capacity ?: INIT_CACHE_SIZE);
     }
     else if (newOccupied <= capacity / 4 * 3) {
         // Cache is less than 3/4 full. Use it as-is.
+        // 容量 <= 3/4 时不作处理
+        
     }
     else {
         // Cache is too full. Expand it.
+        // 容量 > 3/4 时扩展缓存容量
         cache->expand();
     }
 
     // Scan for the first unused slot and insert there.
     // There is guaranteed to be an empty slot because the 
     // minimum size is 4 and we resized at 3/4 full.
-    bucket_t *bucket = cache->find(sel, receiver);
+    bucket_t *bucket = cache->find(sel, receiver);              // 寻找可填充 bucket
     if (bucket->sel() == 0) cache->incrementOccupied();
     bucket->set<Atomic>(sel, imp);
 }
@@ -834,6 +844,13 @@ static void cache_collect_free(bucket_t *data, mask_t capacity)
 * collectALot tries harder to free memory.
 * Cache locks: cacheUpdateLock must be held by the caller.
 **********************************************************************/
+
+/*
+ *
+ * 内部会判断garbage_refs的大小，若小于32*1024什么也不做。
+ * 否则会进入一个循环判断，若进程中没有缓存的访问操作才进行真正的内存释放
+ *
+ */
 void cache_collect(bool collectALot)
 {
     cacheUpdateLock.assertLocked();
