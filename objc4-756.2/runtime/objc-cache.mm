@@ -382,7 +382,7 @@ bucket_t *allocateBuckets(mask_t newCapacity)
     // 两个参数的乘积就是要分配的内存空间的大小（ 数目 * 元素大小 ）
     // calloc 在申请后，对空间逐一进行初始化，并设置值为 0
     bucket_t *newBuckets = (bucket_t *)
-        calloc(cache_t::bytesForCapacity(newCapacity), 1); // 申请存储空间，长度为 newCapacity+1
+        calloc(cache_t::bytesForCapacity(newCapacity), 1);
 
     bucket_t *end = cache_t::endMarker(newBuckets, newCapacity); // 取出最后一个 bucket
 
@@ -392,7 +392,7 @@ bucket_t *allocateBuckets(mask_t newCapacity)
     end->set<NotAtomic>((SEL)(uintptr_t)1, (IMP)(newBuckets - 1));
 #else
     // End marker's sel is 1 and imp points to the first bucket.
-    end->set<NotAtomic>((SEL)(uintptr_t)1, (IMP)newBuckets);
+    end->set<NotAtomic>((SEL)(uintptr_t)1, (IMP)newBuckets);  // 有什么作用 ？
 #endif
     
     if (PrintCaches) recordNewCache(newCapacity);
@@ -476,7 +476,7 @@ void cache_t::reallocate(mask_t oldCapacity, mask_t newCapacity)
     bool freeOld = canBeFreed();
 
     bucket_t *oldBuckets = buckets();
-    bucket_t *newBuckets = allocateBuckets(newCapacity); // 方法缓存散列表每次分配内存都会放弃之前的缓存
+    bucket_t *newBuckets = allocateBuckets(newCapacity);    // 方法缓存散列表每次分配内存都会放弃之前的缓存
 
     // Cache's old contents are not propagated. 
     // This is thought to save cache memory at the cost of extra cache fills.
@@ -485,7 +485,7 @@ void cache_t::reallocate(mask_t oldCapacity, mask_t newCapacity)
     assert(newCapacity > 0);
     assert((uintptr_t)(mask_t)(newCapacity-1) == newCapacity-1);
 
-    setBucketsAndMask(newBuckets, newCapacity - 1);
+    setBucketsAndMask(newBuckets, newCapacity - 1);         // 执行完 _mask=(_mask+1)*2-1，初始 _mask=3
     
     if (freeOld) {
         cache_collect_free(oldBuckets, oldCapacity);
@@ -520,7 +520,7 @@ void cache_t::bad_cache(id receiver, SEL sel, Class isa)
          "invalid object, or a memory error somewhere else.");
 }
 
-
+// 找到未使用或是已使用的对应的 bucket_t
 bucket_t * cache_t::find(SEL s, id receiver)
 {
     assert(s != 0);
@@ -545,8 +545,8 @@ void cache_t::expand()
 {
     cacheUpdateLock.assertLocked();
     
-    uint32_t oldCapacity = capacity();
-    uint32_t newCapacity = oldCapacity ? oldCapacity*2 : INIT_CACHE_SIZE;
+    uint32_t oldCapacity = capacity();   // _mask + 1
+    uint32_t newCapacity = oldCapacity ? oldCapacity*2 : INIT_CACHE_SIZE; // (_mask+1)*2，初始为 4
 
     // 越界判断
     if ((uint32_t)(mask_t)newCapacity != newCapacity) {
@@ -555,7 +555,7 @@ void cache_t::expand()
         newCapacity = oldCapacity;
     }
 
-    reallocate(oldCapacity, newCapacity);
+    reallocate(oldCapacity, newCapacity);  // 执行完 _mask=(_mask+1)*2-1，初始 _mask=3
 }
 
 
@@ -594,7 +594,7 @@ static void cache_fill_nolock(Class cls, SEL sel, IMP imp, id receiver)
     // Scan for the first unused slot and insert there.
     // There is guaranteed to be an empty slot because the 
     // minimum size is 4 and we resized at 3/4 full.
-    bucket_t *bucket = cache->find(sel, receiver);              // 寻找可填充 bucket
+    bucket_t *bucket = cache->find(sel, receiver);              // 找到未使用或是已使用的对应的 bucket_t
     if (bucket->sel() == 0) cache->incrementOccupied();
     bucket->set<Atomic>(sel, imp);
 }
@@ -847,7 +847,7 @@ static void cache_collect_free(bucket_t *data, mask_t capacity)
 
 /*
  *
- * 内部会判断garbage_refs的大小，若小于32*1024什么也不做。
+ * 内部会判断 garbage_refs 的大小，若小于 32*1024 什么也不做。
  * 否则会进入一个循环判断，若进程中没有缓存的访问操作才进行真正的内存释放
  *
  */

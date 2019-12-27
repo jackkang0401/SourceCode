@@ -80,8 +80,8 @@ public:
 
 
 struct cache_t {
-    struct bucket_t *_buckets;  // _buckets最后一个bucket作为特殊位（ End marker's sel is 1 and imp points to the first bucket）
-    mask_t _mask;               // 容量缓存个数 -1 (数组大小 -1)
+    struct bucket_t *_buckets;  // arm 64 不需要 endMark
+    mask_t _mask;               // 容量缓存个数 -1 (数组大小 -1)   3，7，15，31 
     mask_t _occupied;           // 有效缓存个数（已占用数组元素个数）
 
 public:

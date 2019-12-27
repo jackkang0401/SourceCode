@@ -100,12 +100,7 @@ _objc_indexed_classes:
 	.fill ISA_INDEX_COUNT, PTRSIZE, 0
 #endif
 
-.macro GetClassFromIsa_p16 /* src */
-
-/*
- * 表示 isa_t 中存放的 Class 信息是 Class 的地址，还是一个索引(根据该索引可在类信息表中查找该类结构地址)
- * 经测试，iOS 设备上 SUPPORT_INDEXED_ISA 是 0
- */
+.macro GetClassFromIsa_p16 /* src */ // 参数为 isa，作用是找到 isa 中对应的 Class
 
 #if SUPPORT_INDEXED_ISA
 	// Indexed isa
@@ -253,7 +248,7 @@ LExit$0:
  */
 
 .macro CacheLookup
-	// p1 = SEL, p16 = isa
+	// p1 = SEL, p16 = class to be searched
 
     // 这里 CACHE = 16，x16+16 就是 cache 的地址
 	ldp	p10, p11, [x16, #CACHE]	// p10 = buckets, p11 = occupied|mask
@@ -354,18 +349,18 @@ _objc_debug_taggedpointer_ext_classes:
 	.fill 256, 8, 0
 #endif
 
-	ENTRY _objc_msgSend
+	ENTRY _objc_msgSend     // x0 实例对象，x1 SEL
 	UNWIND _objc_msgSend, NoFrame
 
-	cmp	p0, #0			// nil check and tagged pointer check
+	cmp	p0, #0			    // nil check and tagged pointer check
 #if SUPPORT_TAGGED_POINTERS
     // MSB 最高位是 1 一定是负数
-	b.le	LNilOrTagged		//  (MSB tagged pointer looks negative)
+	b.le	LNilOrTagged	//  (MSB tagged pointer looks negative)
 #else
 	b.eq	LReturnZero
 #endif
-	ldr	p13, [x0]		// p13 = isa     x0 指向内存的前 64 位放到 p13（即是 objc_object 的 isa 成员变量）
-	GetClassFromIsa_p16 p13		// p16 = class      通过 isa 找到 class
+	ldr	p13, [x0]		    // p13 = isa    x0 指向内存的前 64 位放到 p13（即是 objc_object 的 isa 成员变量）
+	GetClassFromIsa_p16 p13 // p16 = class  找到 isa 中对应的 Class
 LGetIsaDone:
 	CacheLookup NORMAL		// calls imp or objc_msgSend_uncached
 
@@ -521,8 +516,8 @@ LLookup_Nil:
 	str	x8,     [sp, #(8*16+8*8)]
 
 	// receiver and selector already in x0 and x1
-	mov	x2, x16 // 把 x16 的值复制到 x2 中（ x16 存储的就是 GetClassFromIsa_p16 代码找到的对象的 Class ）
-	bl	__class_lookupMethodAndLoadCache3
+	mov	x2, x16 // 把 x16 的值复制到 x2 中（ x16 存储的就是 GetClassFromIsa_p16 代码找到的 Class ）
+	bl	__class_lookupMethodAndLoadCache3 // (x0, x1, x2) -> (id obj, SEL sel, Class cls)
 
 	// IMP in x0
 	mov	x17, x0
