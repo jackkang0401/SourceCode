@@ -81,6 +81,7 @@ static int prepend_rebindings(struct rebindings_entry **rebindings_head,
         free(new_entry);
         return -1;
     }
+    // 从源内存地址的起始位置开始拷贝若干个字节到目标内存地址中
     memcpy(new_entry->rebindings, rebindings, sizeof(struct rebinding) * nel);
     new_entry->rebindings_nel = nel;
     new_entry->next = *rebindings_head;
@@ -94,16 +95,17 @@ static void perform_rebinding_with_section(struct rebindings_entry *rebindings,
                                            nlist_t *symtab,
                                            char *strtab,
                                            uint32_t *indirect_symtab) {
-    uint32_t *indirect_symbol_indices = indirect_symtab + section->reserved1;
-    void **indirect_symbol_bindings = (void **)((uintptr_t)slide + section->addr);
+    uint32_t *indirect_symbol_indices = indirect_symtab + section->reserved1; // 获取符号表的数组
+    void **indirect_symbol_bindings = (void **)((uintptr_t)slide + section->addr); // 获取函数指针列表
     for (uint i = 0; i < section->size / sizeof(void *); i++) {
-        uint32_t symtab_index = indirect_symbol_indices[i];
+        uint32_t symtab_index = indirect_symbol_indices[i]; // 获取符号表索引 symtab_index
         if (symtab_index == INDIRECT_SYMBOL_ABS || symtab_index == INDIRECT_SYMBOL_LOCAL ||
             symtab_index == (INDIRECT_SYMBOL_LOCAL   | INDIRECT_SYMBOL_ABS)) {
             continue;
         }
+        // 通过符号表索引 symtab_index 获取符号表中某一个 n_list 结构体，得到字符串表中的索引
         uint32_t strtab_offset = symtab[symtab_index].n_un.n_strx;
-        char *symbol_name = strtab + strtab_offset;
+        char *symbol_name = strtab + strtab_offset; // 在字符串表中获得符号的名字
         if (strnlen(symbol_name, 2) < 2) {
             continue;
         }
@@ -113,8 +115,10 @@ static void perform_rebinding_with_section(struct rebindings_entry *rebindings,
                 if (strcmp(&symbol_name[1], cur->rebindings[j].name) == 0) {
                     if (cur->rebindings[j].replaced != NULL &&
                         indirect_symbol_bindings[i] != cur->rebindings[j].replacement) {
+                        // 将原函数的实现传入 original_open 函数指针的地址
                         *(cur->rebindings[j].replaced) = indirect_symbol_bindings[i];
                     }
+                    // 使用新的函数实现 new_open 替换原实现
                     indirect_symbol_bindings[i] = cur->rebindings[j].replacement;
                     goto symbol_loop;
                 }
@@ -138,9 +142,11 @@ static void rebind_symbols_for_image(struct rebindings_entry *rebindings,
     struct symtab_command* symtab_cmd = NULL;
     struct dysymtab_command* dysymtab_cmd = NULL;
     
-    uintptr_t cur = (uintptr_t)header + sizeof(mach_header_t);
+    uintptr_t cur = (uintptr_t)header + sizeof(mach_header_t); // 跳过 mach_header_t 长度的位置
     for (uint i = 0; i < header->ncmds; i++, cur += cur_seg_cmd->cmdsize) {
-        cur_seg_cmd = (segment_command_t *)cur;
+        cur_seg_cmd = (segment_command_t *)cur;     // 将指针强转成 segment_command_t
+        
+        // 通过对比 cmd 的值，来找到需要的 segment_command_t
         if (cur_seg_cmd->cmd == LC_SEGMENT_ARCH_DEPENDENT) {
             if (strcmp(cur_seg_cmd->segname, SEG_LINKEDIT) == 0) {
                 linkedit_segment = cur_seg_cmd;
@@ -158,13 +164,27 @@ static void rebind_symbols_for_image(struct rebindings_entry *rebindings,
     }
     
     // Find base symbol/string table addresses
+    // 在 linkedit_segment 结构体中获得其虚拟地址以及文件偏移量，
+    // 然后计算 __LINKEDIT Segment 的位置：slide + vmaffr - fileoff
     uintptr_t linkedit_base = (uintptr_t)slide + linkedit_segment->vmaddr - linkedit_segment->fileoff;
+    
+    // 从 symtab_command 中获取符号表偏移量和字符串表偏移量，就能够获得符号表、字符串表的引用
     nlist_t *symtab = (nlist_t *)(linkedit_base + symtab_cmd->symoff);
     char *strtab = (char *)(linkedit_base + symtab_cmd->stroff);
     
     // Get indirect symbol table (array of uint32_t indices into symbol table)
+    // 再从 dysymtab_command 中获取间接符号表偏移量，间接符号表的引用
     uint32_t *indirect_symtab = (uint32_t *)(linkedit_base + dysymtab_cmd->indirectsymoff);
     
+    /*
+     间接符号表中的元素都是 uint32_t *，指针的值是对应条目 n_list 在符号表中的位置
+
+     符号表中的元素都是 nlist_t 结构体，其中包含了当前符号在字符串表中的下标
+     
+     字符串表中的元素是 char 字符
+     */
+    
+    // 查找整个镜像中的 SECTION_TYPE 为 S_LAZY_SYMBOL_POINTERS 或者 S_NON_LAZY_SYMBOL_POINTERS 的 section
     cur = (uintptr_t)header + sizeof(mach_header_t);
     for (uint i = 0; i < header->ncmds; i++, cur += cur_seg_cmd->cmdsize) {
         cur_seg_cmd = (segment_command_t *)cur;
@@ -199,9 +219,9 @@ static int fish_rebind_symbols(struct rebinding rebindings[], size_t rebindings_
     }
     // If this was the first call, register callback for image additions (which is also invoked for
     // existing images, otherwise, just run on existing images
-    //首先是遍历 dyld 里的所有的 image，取出 image header 和 slide。注意第一次调用时主要注册 callback
+    // 首先是遍历 dyld 里的所有的 image，取出 image header 和 slide。注意第一次调用时主要注册 callback
     if (!_rebindings_head->next) {
-        _dyld_register_func_for_add_image(_rebind_symbols_for_image);
+        _dyld_register_func_for_add_image(_rebind_symbols_for_image); // 注册加载动态库回调(如果镜像已存在也会调用)
     } else {
         uint32_t c = _dyld_image_count();
         for (uint32_t i = 0; i < c; i++) {
