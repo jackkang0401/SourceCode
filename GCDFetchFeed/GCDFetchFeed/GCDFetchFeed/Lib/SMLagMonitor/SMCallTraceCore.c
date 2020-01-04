@@ -95,17 +95,22 @@ static void perform_rebinding_with_section(struct rebindings_entry *rebindings,
                                            nlist_t *symtab,
                                            char *strtab,
                                            uint32_t *indirect_symtab) {
-    uint32_t *indirect_symbol_indices = indirect_symtab + section->reserved1; // 获取符号表的数组
-    void **indirect_symbol_bindings = (void **)((uintptr_t)slide + section->addr); // 获取函数指针列表
+    // 得到间接符号表数组
+    uint32_t *indirect_symbol_indices = indirect_symtab + section->reserved1;
+    // 得到函数指针列表
+    void **indirect_symbol_bindings = (void **)((uintptr_t)slide + section->addr);
+    // 遍历间接符号表数组
     for (uint i = 0; i < section->size / sizeof(void *); i++) {
-        uint32_t symtab_index = indirect_symbol_indices[i]; // 获取符号表索引 symtab_index
+        // 获取符号表索引 symtab_index
+        uint32_t symtab_index = indirect_symbol_indices[i];
         if (symtab_index == INDIRECT_SYMBOL_ABS || symtab_index == INDIRECT_SYMBOL_LOCAL ||
             symtab_index == (INDIRECT_SYMBOL_LOCAL   | INDIRECT_SYMBOL_ABS)) {
             continue;
         }
         // 通过符号表索引 symtab_index 获取符号表中某一个 n_list 结构体，得到字符串表中的索引
         uint32_t strtab_offset = symtab[symtab_index].n_un.n_strx;
-        char *symbol_name = strtab + strtab_offset; // 在字符串表中获得符号的名字
+        // 在字符串表中获得符号的名字
+        char *symbol_name = strtab + strtab_offset;
         if (strnlen(symbol_name, 2) < 2) {
             continue;
         }
@@ -115,10 +120,10 @@ static void perform_rebinding_with_section(struct rebindings_entry *rebindings,
                 if (strcmp(&symbol_name[1], cur->rebindings[j].name) == 0) {
                     if (cur->rebindings[j].replaced != NULL &&
                         indirect_symbol_bindings[i] != cur->rebindings[j].replacement) {
-                        // 将原函数的实现传入 original_open 函数指针的地址
+                        // 将原函数的实现传入外部的函数指针的地址，以供其他用途
                         *(cur->rebindings[j].replaced) = indirect_symbol_bindings[i];
                     }
-                    // 使用新的函数实现 new_open 替换原实现
+                    // 使用新的函数实现替换原实现
                     indirect_symbol_bindings[i] = cur->rebindings[j].replacement;
                     goto symbol_loop;
                 }
@@ -164,16 +169,16 @@ static void rebind_symbols_for_image(struct rebindings_entry *rebindings,
     }
     
     // Find base symbol/string table addresses
-    // 在 linkedit_segment 结构体中获得其虚拟地址以及文件偏移量，
-    // 然后计算 __LINKEDIT Segment 的位置：slide + vmaffr - fileoff
+    // __LINKEDIT Segment 的位置：slide + 虚拟地址 - 文件偏移量
     uintptr_t linkedit_base = (uintptr_t)slide + linkedit_segment->vmaddr - linkedit_segment->fileoff;
     
-    // 从 symtab_command 中获取符号表偏移量和字符串表偏移量，就能够获得符号表、字符串表的引用
+    // 通过符号表偏移量得到符号表的指针引用
     nlist_t *symtab = (nlist_t *)(linkedit_base + symtab_cmd->symoff);
+    // 通过字符串表偏移量得到字符串表的指针引用
     char *strtab = (char *)(linkedit_base + symtab_cmd->stroff);
     
     // Get indirect symbol table (array of uint32_t indices into symbol table)
-    // 再从 dysymtab_command 中获取间接符号表偏移量，间接符号表的引用
+    // 通过间接符号表偏移量得到间接符号表的指针引用
     uint32_t *indirect_symtab = (uint32_t *)(linkedit_base + dysymtab_cmd->indirectsymoff);
     
     /*
@@ -184,8 +189,8 @@ static void rebind_symbols_for_image(struct rebindings_entry *rebindings,
      字符串表中的元素是 char 字符
      */
     
-    // 查找整个镜像中的 SECTION_TYPE 为 S_LAZY_SYMBOL_POINTERS 或者 S_NON_LAZY_SYMBOL_POINTERS 的 section
     cur = (uintptr_t)header + sizeof(mach_header_t);
+    // 遍历 Segment
     for (uint i = 0; i < header->ncmds; i++, cur += cur_seg_cmd->cmdsize) {
         cur_seg_cmd = (segment_command_t *)cur;
         if (cur_seg_cmd->cmd == LC_SEGMENT_ARCH_DEPENDENT) {
@@ -193,9 +198,11 @@ static void rebind_symbols_for_image(struct rebindings_entry *rebindings,
                 strcmp(cur_seg_cmd->segname, SEG_DATA_CONST) != 0) {
                 continue;
             }
+            // 遍历 Section
             for (uint j = 0; j < cur_seg_cmd->nsects; j++) {
                 section_t *sect =
                 (section_t *)(cur + sizeof(segment_command_t)) + j;
+                //找到 S_LAZY_SYMBOL_POINTERS 与 S_NON_LAZY_SYMBOL_POINTERS
                 if ((sect->flags & SECTION_TYPE) == S_LAZY_SYMBOL_POINTERS) {
                     perform_rebinding_with_section(rebindings, sect, slide, symtab, strtab, indirect_symtab);
                 }
