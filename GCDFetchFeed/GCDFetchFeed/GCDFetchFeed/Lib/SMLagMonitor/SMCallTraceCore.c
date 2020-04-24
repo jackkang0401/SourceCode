@@ -353,6 +353,7 @@ void before_objc_msgSend(id self, SEL _cmd, uintptr_t lr) {
     push_call_record(self, object_getClass(self), _cmd, lr);
 }
 
+// 返回 lr 的值
 uintptr_t after_objc_msgSend() {
     return pop_call_record();
 }
@@ -393,7 +394,7 @@ __asm volatile ("ldp x8, lr, [sp], #16\n");
 
 #define ret() __asm volatile ("ret\n");
 
-__attribute__((__naked__))
+__attribute__((__naked__)) // 编译器不会生成入口代码和退出代码，写naked函数的时候要分外小心。进入函数代码时，父函数仅仅会将参数和返回地址压栈
 static void hook_Objc_msgSend() {
     // Save parameters.
     save()
