@@ -415,7 +415,7 @@ _dispatch_queue_attr_to_info(dispatch_queue_attr_t dqa)
 {
 	dispatch_queue_attr_info_t dqai = { };
 
-	if (!dqa) return dqai;
+	if (!dqa) return dqai; // dqa 如果是 NULL 就返回空的 {}
 
 #if DISPATCH_VARIANT_STATIC
 	if (dqa == &_dispatch_queue_attr_concurrent) {
@@ -428,7 +428,9 @@ _dispatch_queue_attr_to_info(dispatch_queue_attr_t dqa)
 			dqa >= &_dispatch_queue_attrs[DISPATCH_QUEUE_ATTR_COUNT]) {
 		DISPATCH_CLIENT_CRASH(dqa->do_vtable, "Invalid queue attribute");
 	}
-
+	
+	
+	// 取出各个参数各，并进行赋值
 	size_t idx = (size_t)(dqa - _dispatch_queue_attrs);
 
 	dqai.dqai_inactive = (idx % DISPATCH_QUEUE_ATTR_INACTIVE_COUNT);

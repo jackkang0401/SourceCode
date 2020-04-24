@@ -1871,6 +1871,7 @@ _dispatch_get_root_queue(dispatch_qos_t qos, bool overcommit)
 	if (unlikely(qos < DISPATCH_QOS_MIN || qos > DISPATCH_QOS_MAX)) {
 		DISPATCH_CLIENT_CRASH(qos, "Corrupted priority");
 	}
+	//从 _dispatch_root_queues 队列里面拿第（2 * (qos - 1) + overcommit）个queue，
 	return &_dispatch_root_queues[2 * (qos - 1) + overcommit];
 }
 

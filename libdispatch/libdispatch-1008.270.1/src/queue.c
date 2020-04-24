@@ -2672,7 +2672,7 @@ _dispatch_lane_create_with_target(const char *label, dispatch_queue_attr_t dqa,
 	const void *vtable;
 	dispatch_queue_flags_t dqf = legacy ? DQF_MUTABLE : 0;
 	if (dqai.dqai_concurrent) {
-		vtable = DISPATCH_VTABLE(queue_concurrent);
+		vtable = DISPATCH_VTABLE(queue_concurrent); // DISPATCH_OBJC_CLASS(name)
 	} else {
 		vtable = DISPATCH_VTABLE(queue_serial);
 	}
