@@ -1563,6 +1563,7 @@ static void
 __DISPATCH_WAIT_FOR_QUEUE__(dispatch_sync_context_t dsc, dispatch_queue_t dq)
 {
 	uint64_t dq_state = _dispatch_wait_prepare(dq);
+	// 将要被调度的和等待的是同一个，异或为 0==0，返回 YES，产生死锁
 	if (unlikely(_dq_state_drain_locked_by(dq_state, dsc->dsc_waiter))) {
 		DISPATCH_CLIENT_CRASH((uintptr_t)dq_state,
 				"dispatch_sync called on queue "
@@ -1724,6 +1725,7 @@ static inline void
 _dispatch_barrier_sync_f_inline(dispatch_queue_t dq, void *ctxt,
 		dispatch_function_t func, uintptr_t dc_flags)
 {
+	// 获取线程ID
 	dispatch_tid tid = _dispatch_tid_self();
 
 	if (unlikely(dx_metatype(dq) != _DISPATCH_LANE_TYPE)) {
@@ -1776,6 +1778,7 @@ static inline void
 _dispatch_sync_f_inline(dispatch_queue_t dq, void *ctxt,
 		dispatch_function_t func, uintptr_t dc_flags)
 {
+	// 串行队列
 	if (likely(dq->dq_width == 1)) {
 		return _dispatch_barrier_sync_f(dq, ctxt, func, dc_flags);
 	}
@@ -5502,7 +5505,7 @@ _dispatch_root_queue_poke_slow(dispatch_queue_global_t dq, int n, int floor)
 {
 	int remaining = n;
 	int r = ENOSYS;
-
+	// 队列初始化，runtime强转等操作，防止类型无法匹配等情况
 	_dispatch_root_queues_init();
 	_dispatch_debug_root_queue(dq, __func__);
 	_dispatch_trace_runtime_event(worker_request, dq, (uint64_t)n);
@@ -5545,8 +5548,10 @@ _dispatch_root_queue_poke_slow(dispatch_queue_global_t dq, int n, int floor)
 
 	int can_request, t_count;
 	// seq_cst with atomic store to tail <rdar://problem/16932833>
+	// 获取线程池的大小
 	t_count = os_atomic_load2o(dq, dgq_thread_pool_size, ordered);
 	do {
+		// 计算可以请求的数量
 		can_request = t_count < floor ? 0 : t_count - floor;
 		if (remaining > can_request) {
 			_dispatch_root_queue_debug("pthread pool reducing request from %d to %d",
@@ -5554,6 +5559,7 @@ _dispatch_root_queue_poke_slow(dispatch_queue_global_t dq, int n, int floor)
 			os_atomic_sub2o(dq, dgq_pending, remaining - can_request, relaxed);
 			remaining = can_request;
 		}
+		// 线程池无可用将会报错
 		if (remaining == 0) {
 			_dispatch_root_queue_debug("pthread pool is full for root queue: "
 					"%p", dq);
@@ -5571,6 +5577,7 @@ _dispatch_root_queue_poke_slow(dispatch_queue_global_t dq, int n, int floor)
 #endif
 	do {
 		_dispatch_retain(dq); // released in _dispatch_worker_thread
+		// 开辟线程
 		while ((r = pthread_create(pthr, attr, _dispatch_worker_thread, dq))) {
 			if (r != EAGAIN) {
 				(void)dispatch_assume_zero(r);

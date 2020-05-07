@@ -509,7 +509,7 @@ struct dispatch_queue_s _dispatch_main_q;
  */
 DISPATCH_INLINE DISPATCH_ALWAYS_INLINE DISPATCH_CONST DISPATCH_NOTHROW
 dispatch_queue_main_t
-dispatch_get_main_queue(void)
+dispatch_get_main_queue(void) // .dq_serialnum = 1
 {
 	return DISPATCH_GLOBAL_OBJECT(dispatch_queue_main_t, _dispatch_main_q);
 }

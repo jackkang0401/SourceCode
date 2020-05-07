@@ -430,7 +430,7 @@ _dispatch_queue_attr_to_info(dispatch_queue_attr_t dqa)
 	}
 	
 	
-	// 取出各个参数各，并进行赋值
+	// 取出各个参数，并进行赋值
 	size_t idx = (size_t)(dqa - _dispatch_queue_attrs);
 
 	dqai.dqai_inactive = (idx % DISPATCH_QUEUE_ATTR_INACTIVE_COUNT);
