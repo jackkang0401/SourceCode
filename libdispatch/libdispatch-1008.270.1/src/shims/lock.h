@@ -110,6 +110,7 @@ static inline bool
 _dispatch_lock_is_locked_by(dispatch_lock lock_value, dispatch_tid tid)
 {
 	// equivalent to _dispatch_lock_owner(lock_value) == tid
+	// lock_value 为队列状态，tid 为线程 id
 	return ((lock_value ^ tid) & DLOCK_OWNER_MASK) == 0;
 }
 

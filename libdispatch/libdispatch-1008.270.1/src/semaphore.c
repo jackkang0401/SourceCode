@@ -226,6 +226,8 @@ dispatch_group_wait(dispatch_group_t dg, dispatch_time_t timeout)
 {
 	uint64_t old_state, new_state;
 
+	// 如果当前 value 和原始 value 相同，表明任务已经全部完成，直接返回 0，如果 timeout 为 0 也会立刻返回，
+	// 否则调用 _dispatch_group_wait_slow。
 	os_atomic_rmw_loop2o(dg, dg_state, old_state, new_state, relaxed, {
 		if ((old_state & DISPATCH_GROUP_VALUE_MASK) == 0) {
 			os_atomic_rmw_loop_give_up_with_fence(acquire, return 0);
@@ -239,6 +241,7 @@ dispatch_group_wait(dispatch_group_t dg, dispatch_time_t timeout)
 		}
 	});
 
+	// 在 _dispatch_group_wait_slow 会一直等到任务完成返回 0 ，当然如果一直没有完成就会返回 timeout
 	return _dispatch_group_wait_slow(dg, _dg_state_gen(new_state), timeout);
 }
 
@@ -252,6 +255,7 @@ _dispatch_group_wake(dispatch_group_t dg, uint64_t dg_state, bool needs_release)
 		dispatch_continuation_t dc, next_dc, tail;
 
 		// Snapshot before anything is notified/woken <rdar://problem/8554546>
+		// 循环调用 dispatch_async_f 异步执行在 notify 函数中注册的回调
 		dc = os_mpsc_capture_snapshot(os_mpsc(dg, dg_notify), &tail);
 		do {
 			dispatch_queue_t dsn_queue = (dispatch_queue_t)dc->dc_data;

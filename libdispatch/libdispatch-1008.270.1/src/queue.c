@@ -1562,8 +1562,9 @@ DISPATCH_NOINLINE
 static void
 __DISPATCH_WAIT_FOR_QUEUE__(dispatch_sync_context_t dsc, dispatch_queue_t dq)
 {
+	// 获取队列的状态，看是否是处于等待状态
 	uint64_t dq_state = _dispatch_wait_prepare(dq);
-	// 将要被调度的和等待的是同一个，异或为 0==0，返回 YES，产生死锁
+	// 被调度的和等待的是同一个，异或为 0==0，返回 YES，产生死锁
 	if (unlikely(_dq_state_drain_locked_by(dq_state, dsc->dsc_waiter))) {
 		DISPATCH_CLIENT_CRASH((uintptr_t)dq_state,
 				"dispatch_sync called on queue "
@@ -1676,8 +1677,9 @@ _dispatch_sync_f_slow(dispatch_queue_class_t top_dqu, void *ctxt,
 		.dsc_ctxt    = ctxt,
 		.dsc_waiter  = _dispatch_tid_self(),
 	};
-
+	// 将 block push 到 queue 里面去
 	_dispatch_trace_item_push(top_dq, &dsc);
+	// 死锁检测
 	__DISPATCH_WAIT_FOR_QUEUE__(&dsc, dq);
 
 	if (dsc.dsc_func == NULL) {
