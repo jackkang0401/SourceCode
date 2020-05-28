@@ -755,13 +755,13 @@ class StripedMap {
 #endif
 
     struct PaddedT {
-        T value alignas(CacheLineSize);
+        T value alignas(CacheLineSize); // alignas关键字,设置内存中对齐方式,最小是8字节对齐,可以是16,32,64,128等
     };
 
     PaddedT array[StripeCount];
 
     static unsigned int indexForPointer(const void *p) {
-        uintptr_t addr = reinterpret_cast<uintptr_t>(p);
+        uintptr_t addr = reinterpret_cast<uintptr_t>(p); // 处理无关类型之间的转换；产生一个新值，与原始参数有完全相同的比特位
         return ((addr >> 4) ^ (addr >> 9)) % StripeCount;
     }
 

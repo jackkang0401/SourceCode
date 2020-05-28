@@ -1222,7 +1222,11 @@ struct objc_class : objc_object {
         assert((set & clear) == 0);
         data()->changeFlags(set, clear);
     }
-
+    /*
+     此比特位会在该类或父类重写下列方法时retain/release/autorelease/retainCount/_tryRetain/
+     _isDeallocating/retainWeakReference/allowsWeakReference返回true，一般情况我们都不会
+     重写这些方法，因此会返回false,取反就为true
+     */
     bool hasCustomRR() {
         return ! bits.hasDefaultRR();
     }

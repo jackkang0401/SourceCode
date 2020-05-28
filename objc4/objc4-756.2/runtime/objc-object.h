@@ -441,6 +441,7 @@ objc_object::retain()
 {
     assert(!isTaggedPointer());
 
+    // 检查类（包括其父类）中是否有自定义实现
     if (fastpath(!ISA()->hasCustomRR())) {
         return rootRetain();
     }
@@ -485,7 +486,7 @@ objc_object::rootRetain(bool tryRetain, bool handleOverflow)
         transcribeToSideTable = false;
         oldisa = LoadExclusive(&isa.bits);
         newisa = oldisa;
-        if (slowpath(!newisa.nonpointer)) {
+        if (slowpath(!newisa.nonpointer)) { // 0:普通指针，1:优化过，使用位域存储更多信息
             ClearExclusive(&isa.bits);
             if (!tryRetain && sideTableLocked) sidetable_unlock();
             if (tryRetain) return sidetable_tryRetain() ? (id)this : nil;
