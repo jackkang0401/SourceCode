@@ -484,10 +484,10 @@ objc_object::rootRetain(bool tryRetain, bool handleOverflow)
 
     do {
         transcribeToSideTable = false;
-        oldisa = LoadExclusive(&isa.bits);
+        oldisa = LoadExclusive(&isa.bits);  // 读取操作原子化，比如 x86-64 直接返回值，arm64 使用 ldxr 指令
         newisa = oldisa;
-        if (slowpath(!newisa.nonpointer)) { // 0:普通指针，1:优化过，使用位域存储更多信息
-            ClearExclusive(&isa.bits);
+        if (slowpath(!newisa.nonpointer)) { // 0:普通指针，1:指针优化，使用位域存储更多信息
+            ClearExclusive(&isa.bits);      // 解除锁，arm64 使用 clrex 指令
             if (!tryRetain && sideTableLocked) sidetable_unlock();
             if (tryRetain) return sidetable_tryRetain() ? (id)this : nil;
             else return sidetable_retain();
