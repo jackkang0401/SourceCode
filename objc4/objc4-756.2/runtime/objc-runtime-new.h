@@ -1051,14 +1051,14 @@ public:
 #endif
 
 #if FAST_HAS_CXX_CTOR
-    bool hasCxxCtor() {
+    bool hasCxxCtor() {     // 类及父类是否有自己的构造函数
         return getBit(FAST_HAS_CXX_CTOR);
     }
     void setHasCxxCtor() {
         setBits(FAST_HAS_CXX_CTOR);
     }
 #else
-    bool hasCxxCtor() {
+    bool hasCxxCtor() {     // 类及父类是否有自己的构造函数
         return data()->flags & RW_HAS_CXX_CTOR;
     }
     void setHasCxxCtor() {
@@ -1067,14 +1067,14 @@ public:
 #endif
 
 #if FAST_HAS_CXX_DTOR
-    bool hasCxxDtor() {
+    bool hasCxxDtor() {     // 类及父类是否有自己的析构函数
         return getBit(FAST_HAS_CXX_DTOR);
     }
     void setHasCxxDtor() {
         setBits(FAST_HAS_CXX_DTOR);
     }
 #else
-    bool hasCxxDtor() {
+    bool hasCxxDtor() {     // 类及父类是否有自己的析构函数
         return data()->flags & RW_HAS_CXX_DTOR;
     }
     void setHasCxxDtor() {

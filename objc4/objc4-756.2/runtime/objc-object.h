@@ -605,7 +605,7 @@ objc_object::rootRelease(bool performDealloc, bool handleUnderflow)
     if (slowpath(newisa.has_sidetable_rc)) {
         if (!handleUnderflow) {
             ClearExclusive(&isa.bits);
-            return rootRelease_underflow(performDealloc);
+            return rootRelease_underflow(performDealloc); // 再执行 rootRelease，处理下溢
         }
 
         // Transfer retain count from side table to inline storage.
