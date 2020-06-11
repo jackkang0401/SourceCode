@@ -658,17 +658,17 @@ class AutoreleasePoolPage
 #endif
     static size_t const COUNT = SIZE / sizeof(id);
 
-    magic_t const magic;
+    magic_t const magic;        // 校验 AutoreleasePoolPage 结构是否完整(内存是否损坏) 16 byte
     id *next;
     pthread_t const thread;
     AutoreleasePoolPage * const parent;
     AutoreleasePoolPage *child;
     uint32_t const depth;
-    uint32_t hiwat;
+    uint32_t hiwat;             // 最大入栈数 4 byte
 
     // SIZE-sizeof(*this) bytes of contents follow
 
-    static void * operator new(size_t size) {
+    static void * operator new(size_t size) {       // 开辟 SIZE 大小的空间
         return malloc_zone_memalign(malloc_default_zone(), SIZE, SIZE);
     }
     static void operator delete(void * p) {
@@ -689,7 +689,7 @@ class AutoreleasePoolPage
 #endif
     }
 
-    AutoreleasePoolPage(AutoreleasePoolPage *newParent) 
+    AutoreleasePoolPage(AutoreleasePoolPage *newParent) // 初始化各个参数，包含 next 指向 begin()
         : magic(), next(begin()), thread(pthread_self()),
           parent(newParent), child(nil), 
           depth(parent ? 1+parent->depth : 0), 
@@ -751,12 +751,12 @@ class AutoreleasePoolPage
     }
 
 
-    id * begin() {
-        return (id *) ((uint8_t *)this+sizeof(*this));
+    id * begin() { // sizeof(*this) 表示 AutoreleasePoolPage 本身的大小
+        return (id *) ((uint8_t *)this+sizeof(*this));  // 最低地址
     }
 
     id * end() {
-        return (id *) ((uint8_t *)this+SIZE);
+        return (id *) ((uint8_t *)this+SIZE);           // 最高地址
     }
 
     bool empty() {
@@ -786,7 +786,7 @@ class AutoreleasePoolPage
         releaseUntil(begin());
     }
 
-    void releaseUntil(id *stop) 
+    void releaseUntil(id *stop) // 释放到 stop 指向的位置
     {
         // Not recursive: we don't want to blow out the stack 
         // if a thread accumulates a stupendous amount of garbage
@@ -822,7 +822,7 @@ class AutoreleasePoolPage
 #endif
     }
 
-    void kill() 
+    void kill() // 先遍历到栈顶 page，接着向栈底释放，到当前 page
     {
         // Not recursive: we don't want to blow out the stack 
         // if a thread accumulates a stupendous amount of garbage
