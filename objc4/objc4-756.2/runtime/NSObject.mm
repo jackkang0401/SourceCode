@@ -1071,7 +1071,7 @@ public:
             if (hotPage()) {
                 // Pool was used. Pop its contents normally.
                 // Pool pages remain allocated for re-use as usual.
-                pop(coldPage()->begin());
+                pop(coldPage()->begin());           // 找到栈低第一个 page，并在 begin() 进行 pop
             } else {
                 // Pool was never used. Clear the placeholder.
                 setHotPage(nil);
