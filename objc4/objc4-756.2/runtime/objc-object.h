@@ -366,7 +366,7 @@ objc_object::setWeaklyReferenced_nolock()
  retry:
     isa_t oldisa = LoadExclusive(&isa.bits);
     isa_t newisa = oldisa;
-    if (slowpath(!newisa.nonpointer)) {
+    if (slowpath(!newisa.nonpointer)) { // 未使用 nonpointer
         ClearExclusive(&isa.bits);
         sidetable_setWeaklyReferenced_nolock();
         return;

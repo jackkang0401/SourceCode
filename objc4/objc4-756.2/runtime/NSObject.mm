@@ -337,7 +337,7 @@ storeWeak(id *location, objc_object *newObj)
 
         // Set is-weakly-referenced bit in refcount table.
         if (newObj  &&  !newObj->isTaggedPointer()) {
-            newObj->setWeaklyReferenced_nolock();
+            newObj->setWeaklyReferenced_nolock();   // 设置弱引用标记
         }
 
         // Do not set *location anywhere else. That would introduce a race.
