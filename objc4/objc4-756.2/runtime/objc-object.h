@@ -155,7 +155,7 @@ inline Class
 objc_object::ISA() 
 {
     assert(!isTaggedPointer()); 
-#if SUPPORT_INDEXED_ISA
+#if SUPPORT_INDEXED_ISA // 表示 isa_t 中存放的 Class 信息是一个索引 (在类信息表中查找该类结构地址)
     if (isa.nonpointer) {
         uintptr_t slot = isa.indexcls;
         return classForIndex((unsigned)slot);
@@ -381,7 +381,7 @@ objc_object::setWeaklyReferenced_nolock()
 
 
 inline bool
-objc_object::hasCxxDtor()
+objc_object::hasCxxDtor()  // 是否使用了 C++ 析构函数
 {
     assert(!isTaggedPointer());
     if (isa.nonpointer) return isa.has_cxx_dtor;

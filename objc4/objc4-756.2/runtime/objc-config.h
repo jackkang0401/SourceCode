@@ -95,7 +95,7 @@
 #if __ARM_ARCH_7K__ >= 2  ||  (__arm64__ && !__LP64__)
 #   define SUPPORT_INDEXED_ISA 1
 #else
-#   define SUPPORT_INDEXED_ISA 0
+#   define SUPPORT_INDEXED_ISA 0 // 表示 isa_t 中存放的 Class 信息是一个索引 (在类信息表中查找该类结构地址)
 #endif
 
 // Define SUPPORT_PACKED_ISA=1 on platforms that store the class in the isa 
