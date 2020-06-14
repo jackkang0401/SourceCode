@@ -198,7 +198,8 @@ class AssociationsManager {
 public:
     AssociationsManager()   { AssociationsManagerLock.lock(); }
     ~AssociationsManager()  { AssociationsManagerLock.unlock(); }
-    
+    // 可以看作单例, 在 AssociationsManager 创建时候加锁, AssociationsManager 释放时候解锁, 
+    // 防止多线程访问时候对同一个 _map 多次创建
     AssociationsHashMap &associations() {
         if (_map == NULL)
             _map = new AssociationsHashMap();
