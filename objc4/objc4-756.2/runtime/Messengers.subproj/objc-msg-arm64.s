@@ -108,13 +108,13 @@ _objc_indexed_classes:
     // 如果 p16 + ISA_INDEX_IS_NPI_BIT 为 0 跳转
 	tbz	p16, #ISA_INDEX_IS_NPI_BIT, 1f	// done if not non-pointer isa
 	// isa in p16 is indexed
-	adrp	x10, _objc_indexed_classes@PAGE
+	adrp	x10, _objc_indexed_classes@PAGE         // 命令解释 line 373
 	add	x10, x10, _objc_indexed_classes@PAGEOFF
 	ubfx	p16, p16, #ISA_INDEX_SHIFT, #ISA_INDEX_BITS  // extract index
 	ldr	p16, [x10, p16, UXTP #PTRSHIFT]	// load class from array
 1:
 
-#elif __LP64__
+#elif __LP64__ // 如果int是32位，long是64位，pointer 也是64位，那么该机器就是 LP64 的，其中的L表示 Long，P表示 Pointer
 	// 64-bit packed isa
 	and	p16, $0, #ISA_MASK  // #define ISA_MASK 0x0000000ffffffff8ULL 找到 isa 变量中的 Class 并放入 p16
 
@@ -242,8 +242,8 @@ LExit$0:
 /*
  LSL 逻辑左移：高位移出，低位补零
  LSR 逻辑右移：低位移出，高位补零
- ASL 逻辑左移：高位移出，低位补零
- ASR 算是右移：低位移出，高位补符号位
+ ASL 算术左移：高位移出，低位补零
+ ASR 算术右移：低位移出，高位补符号位
  ROR 循环右移：低位移出，高位补低位移出位
  */
 
@@ -318,7 +318,7 @@ LExit$0:
  * ldr x0，[x1, #8]!          将存储器地址为 x1+8 的字数据读入寄存器 x0, 并将新地址 x1＋8 写入 x1
  * ldr x0，[x1], x2           将存储器地址为 x1 的字数据读入寄存器 x0, 并将新地址 x1＋x2 写入 x1
  * ldr x0，[x1, x2, LSL #2]!  将存储器地址为 x1＋x2×4 的字数据读入寄存器 x0, 并将新地址 x1＋x2×4 写入 x1
- * ldr x0，[x1], x2,LSL#2     将存储器地址为 x1 的字数据读入寄存器 x0, 幵将新地址 x1＋x2×4 写入 x1
+ * ldr x0，[x1], x2, LSL #2   将存储器地址为 x1 的字数据读入寄存器 x0, 并将新地址 x1＋x2×4 写入 x1
  *
  */
 
@@ -343,7 +343,7 @@ LExit$0:
 	.align 3
 	.globl _objc_debug_taggedpointer_classes
 _objc_debug_taggedpointer_classes:
-	.fill 16, 8, 0     // .fill repeat, size, value:反复拷贝 size 个字节，重复 repeat 次(其中 size 和 value 是可选的，默认值分别为 1 和 0 )
+	.fill 16, 8, 0     // .fill repeat, size, value :反复拷贝 size 个 byte，重复 repeat 次(其中 size 和 value 是可选的，默认值分别为 1 和 0 )
 	.globl _objc_debug_taggedpointer_ext_classes
 _objc_debug_taggedpointer_ext_classes:
 	.fill 256, 8, 0
@@ -354,7 +354,7 @@ _objc_debug_taggedpointer_ext_classes:
 
 	cmp	p0, #0			    // nil check and tagged pointer check
 #if SUPPORT_TAGGED_POINTERS
-    // MSB 最高位是 1 一定是负数
+    // MSB(最高有效位) tagged pointer 最高位是 1 一定是负数
 	b.le	LNilOrTagged	//  (MSB tagged pointer looks negative)
 #else
 	b.eq	LReturnZero
@@ -371,7 +371,7 @@ LNilOrTagged:               // Tagged Pointer 指针最高位是1(符号位)，�
 	// tagged
 
     // 得到一个大小为4KB的页的基址，而且在该页中有全局变量 objc_debug_taggedpointer_classes 的地址；
-    // ADRP就是讲该页的基址存到寄存器 X10 中
+    // ADRP 就是将该页的基址存到寄存器 X10 中
 	adrp	x10, _objc_debug_taggedpointer_classes@PAGE
 
     // _objc_debug_taggedpointer_classes@PAGEOFF 是一个偏移量，这样就得到了 objc_debug_taggedpointer_classes 的地址 X10
@@ -429,7 +429,7 @@ LLookup_NilOrTagged:
 	// tagged
 	mov	x10, #0xf000000000000000
 	cmp	x0, x10
-	b.hs	LLookup_ExtTag
+	b.hs	LLookup_ExtTag              // 大于
 	adrp	x10, _objc_debug_taggedpointer_classes@PAGE
 	add	x10, x10, _objc_debug_taggedpointer_classes@PAGEOFF
 	ubfx	x11, x0, #60, #4
@@ -469,7 +469,7 @@ LLookup_Nil:
 	ENTRY _objc_msgSendSuper
 	UNWIND _objc_msgSendSuper, NoFrame
 
-	ldp	p0, p16, [x0]		// p0 = real receiver, p16 = class
+	ldp	p0, p16, [x0]		// p0 = real receiver, p16 = class  // 已找到 isa (class) 了, 直接获取 superclass
 	CacheLookup NORMAL		// calls imp or objc_msgSend_uncached
 
 	END_ENTRY _objc_msgSendSuper
