@@ -700,7 +700,7 @@ fixupMethodList(method_list_t *mlist, bool bundleCopy, bool sort)
         // Unique selectors in list.
         for (auto& meth : *mlist) {
             const char *name = sel_cname(meth.name);
-            meth.name = sel_registerNameNoLock(name, bundleCopy);
+            meth.name = sel_registerNameNoLock(name, bundleCopy); // 注册方法列表中的方法名
         }
     }
 
@@ -750,7 +750,7 @@ prepareMethodLists(Class cls, method_list_t **addedLists, int addedCount,
 
         // Scan for method implementations tracked by the class's flags
         if (scanForCustomRR  &&  methodListImplementsRR(mlist)) {
-            cls->setHasCustomRR();
+            cls->setHasCustomRR();      // 当前类及子类都要设置
             scanForCustomRR = false;
         }
         if (scanForCustomAWZ  &&  methodListImplementsAWZ(mlist)) {
@@ -6126,9 +6126,9 @@ addMethod(Class cls, SEL name, IMP imp, const char *types, bool replace)
         newlist->first.types = strdupIfMutable(types);
         newlist->first.imp = imp;
 
-        prepareMethodLists(cls, &newlist, 1, NO, NO);
-        cls->data()->methods.attachLists(&newlist, 1);
-        flushCaches(cls);
+        prepareMethodLists(cls, &newlist, 1, NO, NO);   // 对方法列表排序
+        cls->data()->methods.attachLists(&newlist, 1);  // 插入 newlist
+        flushCaches(cls);                               // 清除缓存
 
         result = nil;
     }
