@@ -228,7 +228,7 @@ bool method_list_t::isFixedUp() const {
     return flags() == fixed_up_method_list;
 }
 
-void method_list_t::setFixedUp() {
+void method_list_t::setFixedUp() {  // 标记已排序
     runtimeLock.assertLocked();
     assert(!isFixedUp());
     entsizeAndFlags = entsize() | fixed_up_method_list;
@@ -259,7 +259,7 @@ method_list_t **method_array_t::endCategoryMethodLists(Class cls)
     
     // Have base methods. Category methods are 
     // everything except the last method list.
-    return mlistsEnd - 1;
+    return mlistsEnd - 1;   // base methods 在最后一个位置
 }
 
 static const char *sel_cname(SEL sel)
@@ -4936,7 +4936,7 @@ class_setVersion(Class cls, int version)
     cls->data()->version = version;
 }
 
-
+// 二分查找
 static method_t *findMethodInSortedMethodList(SEL key, const method_list_t *list)
 {
     assert(list);
@@ -4956,7 +4956,7 @@ static method_t *findMethodInSortedMethodList(SEL key, const method_list_t *list
             // `probe` is a match.
             // Rewind looking for the *first* occurrence of this value.
             // This is required for correct category overrides.
-            while (probe > first && keyValue == (uintptr_t)probe[-1].name) {
+            while (probe > first && keyValue == (uintptr_t)probe[-1].name) { // 向前查找 (校正 category 覆盖)
                 probe--;
             }
             return (method_t *)probe;
@@ -4982,7 +4982,7 @@ static method_t *search_method_list(const method_list_t *mlist, SEL sel)
     int methodListHasExpectedSize = mlist->entsize() == sizeof(method_t);
     
     if (__builtin_expect(methodListIsFixedUp && methodListHasExpectedSize, 1)) {
-        return findMethodInSortedMethodList(sel, mlist);
+        return findMethodInSortedMethodList(sel, mlist);        // 二分查找
     } else {
         // Linear search of unsorted method list
         for (auto& meth : *mlist) {
@@ -5288,13 +5288,13 @@ IMP lookUpImpOrForward(Class cls, SEL sel, id inst,
     // the cache was re-filled with the old value after the cache flush on
     // behalf of the category.
     
-    // runtimeLock在方法搜索期间保持，使 method-lookup + cache-fill 对于方法添加是原子性的
+    // runtimeLock 在方法搜索期间保持，使 method-lookup + cache-fill 对于方法添加是原子性的
     // 否则，可以添加一个类别，但是可以无限期地忽略它，因为在代表类别的缓存刷新之后，用旧值重新填充缓存
     
     runtimeLock.lock();
     checkIsKnownClass(cls);
 
-    if (!cls->isRealized()) {
+    if (!cls->isRealized()) {   // 类未注册
         cls = realizeClassMaybeSwiftAndLeaveLocked(cls, runtimeLock);
         // runtimeLock may have been dropped but is now locked again
     }

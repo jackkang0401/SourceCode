@@ -355,7 +355,7 @@ _objc_debug_taggedpointer_ext_classes:
 	cmp	p0, #0			    // nil check and tagged pointer check
 #if SUPPORT_TAGGED_POINTERS
     // MSB(最高有效位) tagged pointer 最高位是 1 一定是负数
-	b.le	LNilOrTagged	//  (MSB tagged pointer looks negative)
+	b.le	LNilOrTagged	//  (MSB tagged pointer looks negative) 小于等于（带符号）
 #else
 	b.eq	LReturnZero
 #endif
@@ -429,7 +429,7 @@ LLookup_NilOrTagged:
 	// tagged
 	mov	x10, #0xf000000000000000
 	cmp	x0, x10
-	b.hs	LLookup_ExtTag              // 大于
+	b.hs	LLookup_ExtTag              // 大于等于（无符号）
 	adrp	x10, _objc_debug_taggedpointer_classes@PAGE
 	add	x10, x10, _objc_debug_taggedpointer_classes@PAGEOFF
 	ubfx	x11, x0, #60, #4

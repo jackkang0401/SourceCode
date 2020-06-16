@@ -125,7 +125,7 @@ struct entsize_list_tt {
     uint32_t count;
     Element first;
 
-    uint32_t entsize() const {
+    uint32_t entsize() const {          // 元素 Element 大小
         return entsizeAndFlags & ~FlagMask;
     }
     uint32_t flags() const {
@@ -285,7 +285,7 @@ struct property_t {
 };
 
 // Two bits of entsize are used for fixup markers.
-struct method_list_t : entsize_list_tt<method_t, method_list_t, 0x3> {
+struct method_list_t : entsize_list_tt<method_t, method_list_t, 0x3> { // 每个 category 对应一个 method_list_t 结构体的指针
     bool isFixedUp() const;
     void setFixedUp();
 
@@ -648,7 +648,7 @@ template <typename Element, typename List>
 class list_array_tt {
     struct array_t {
         uint32_t count;
-        List* lists[0];
+        List* lists[0]; // lists 的元素为 List*
 
         static size_t byteSize(uint32_t count) {
             return sizeof(array_t) + count*sizeof(lists[0]);
@@ -660,8 +660,8 @@ class list_array_tt {
 
  protected:
     class iterator {
-        List **lists;
-        List **listsEnd;
+        List **lists;       // 当前迭代的 List *
+        List **listsEnd;    // 最后一个(结尾) List *
         typename List::iterator m, mEnd;
 
      public:
@@ -669,8 +669,8 @@ class list_array_tt {
             : lists(begin), listsEnd(end)
         {
             if (begin != end) {
-                m = (*begin)->begin();
-                mEnd = (*begin)->end();
+                m = (*begin)->begin();      // 设置为第一个 List * 的 begin
+                mEnd = (*begin)->end();     // 设置为第一个 List * 的 end
             }
         }
 
@@ -691,7 +691,7 @@ class list_array_tt {
         const iterator& operator ++ () {
             assert(m != mEnd);
             m++;
-            if (m == mEnd) {
+            if (m == mEnd) {    // 当前 List * 已遍历完，开始遍历下一个 List *
                 assert(lists != listsEnd);
                 lists++;
                 if (lists != listsEnd) {
@@ -706,14 +706,14 @@ class list_array_tt {
  private:
     union {
         List* list;
-        uintptr_t arrayAndFlag;
+        uintptr_t arrayAndFlag; // 值为 ((array_t *) | 1)
     };
 
     bool hasArray() const {
         return arrayAndFlag & 1;
     }
 
-    array_t *array() {
+    array_t *array() {  // array_t * 结构体指针 array()->lists
         return (array_t *)(arrayAndFlag & ~1);
     }
 
@@ -756,7 +756,7 @@ class list_array_tt {
 
     List** beginLists() {
         if (hasArray()) {
-            return array()->lists;
+            return array()->lists;                  // array_t 中 lists 第一个元素
         } else {
             return &list;
         }
@@ -764,7 +764,7 @@ class list_array_tt {
 
     List** endLists() {
         if (hasArray()) {
-            return array()->lists + array()->count;
+            return array()->lists + array()->count; // array_t 中 lists 最后一个元素
         } else if (list) {
             return &list + 1;
         } else {
@@ -781,10 +781,10 @@ class list_array_tt {
             uint32_t newCount = oldCount + addedCount;
             setArray((array_t *)realloc(array(), array_t::byteSize(newCount)));
             array()->count = newCount;
-            memmove(array()->lists + addedCount, array()->lists, 
-                    oldCount * sizeof(array()->lists[0]));
-            memcpy(array()->lists, addedLists, 
-                   addedCount * sizeof(array()->lists[0]));
+            memmove(array()->lists + addedCount, array()->lists,    // void    *memmove(void *__dst, const void *__src, size_t __len);
+                    oldCount * sizeof(array()->lists[0]));          // 由 __src 所指内存区域复制 __len 个字节到 __dst 所指内存区域
+            memcpy(array()->lists, addedLists,
+                   addedCount * sizeof(array()->lists[0]));         // 新值写在靠前位置
         }
         else if (!list  &&  addedCount == 1) {
             // 0 lists -> 1 list
@@ -835,7 +835,7 @@ class list_array_tt {
     }
 };
 
-
+// 最后一个 method_list_t 实际上就是 class_ro_t 的 baseMethodList
 class method_array_t : 
     public list_array_tt<method_t, method_list_t> 
 {

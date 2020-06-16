@@ -412,7 +412,7 @@ _objc_makeTaggedPointer(objc_tag_index_t tag, uintptr_t value)
             (_OBJC_TAG_EXT_MASK |
              ((uintptr_t)(tag - OBJC_TAG_First52BitPayload) << _OBJC_TAG_EXT_INDEX_SHIFT) |
              ((value << _OBJC_TAG_EXT_PAYLOAD_RSHIFT) >> _OBJC_TAG_EXT_PAYLOAD_LSHIFT));
-        return _objc_encodeTaggedPointer(result);
+        return _objc_encodeTaggedPointer(result); // tag - OBJC_TAG_First52BitPayload 为了充分利用内存，如果不减，0~7 一直不存数据
     }
 }
 
