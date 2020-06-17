@@ -5501,7 +5501,7 @@ objc_class::setInitialized()
     assert(!isMetaClass());
 
     cls = (Class)this;
-    metacls = cls->ISA();
+    metacls = cls->ISA();   // 元类
 
     mutex_locker_t lock(runtimeLock);
 
@@ -6301,10 +6301,10 @@ class_addIvar(Class cls, const char *name, size_t size,
     // fixme allocate less memory here
     
     ivar_list_t *oldlist, *newlist;
-    if ((oldlist = (ivar_list_t *)cls->data()->ro->ivars)) {
+    if ((oldlist = (ivar_list_t *)cls->data()->ro->ivars)) { // 是否已有成员变量列表
         size_t oldsize = oldlist->byteSize();
         newlist = (ivar_list_t *)calloc(oldsize + oldlist->entsize(), 1);
-        memcpy(newlist, oldlist, oldsize);
+        memcpy(newlist, oldlist, oldsize);              // 将旧成员变量拷贝写入 newlist
         free(oldlist);
     } else {
         newlist = (ivar_list_t *)calloc(sizeof(ivar_list_t), 1);
@@ -6315,7 +6315,7 @@ class_addIvar(Class cls, const char *name, size_t size,
     uint32_t alignMask = (1<<alignment)-1;
     offset = (offset + alignMask) & ~alignMask;
 
-    ivar_t& ivar = newlist->get(newlist->count++);
+    ivar_t& ivar = newlist->get(newlist->count++);      // 获取最后一个 ivar_t
 #if __x86_64__
     // Deliberately over-allocate the ivar offset variable. 
     // Use calloc() to clear all 64 bits. See the note in struct ivar_t.
@@ -6329,7 +6329,7 @@ class_addIvar(Class cls, const char *name, size_t size,
     ivar.alignment_raw = alignment;
     ivar.size = (uint32_t)size;
 
-    ro_w->ivars = newlist;
+    ro_w->ivars = newlist;                              // 替换新的成员变量列表
     cls->setInstanceSize((uint32_t)(offset + size));
 
     // Ivar layout updated in registerClass.
@@ -6868,14 +6868,14 @@ static void free_class(Class cls)
     auto rw = cls->data();
     auto ro = rw->ro;
 
-    cache_delete(cls);
+    cache_delete(cls);                      // 删除方法缓存
     
     for (auto& meth : rw->methods) {
         try_free(meth.types);
     }
-    rw->methods.tryFree();
+    rw->methods.tryFree();                  // 释放方法列表
     
-    const ivar_list_t *ivars = ro->ivars;
+    const ivar_list_t *ivars = ro->ivars;   // 释放成员变量列表
     if (ivars) {
         for (auto& ivar : *ivars) {
             try_free(ivar.offset);
@@ -6889,9 +6889,9 @@ static void free_class(Class cls)
         try_free(prop.name);
         try_free(prop.attributes);
     }
-    rw->properties.tryFree();
+    rw->properties.tryFree();               // 释放属性列表
 
-    rw->protocols.tryFree();
+    rw->protocols.tryFree();                // 释放协议列表
     
     try_free(ro->ivarLayout);
     try_free(ro->weakIvarLayout);

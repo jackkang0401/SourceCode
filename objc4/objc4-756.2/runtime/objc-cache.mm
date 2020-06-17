@@ -470,7 +470,7 @@ bool cache_t::canBeFreed()
     return !isConstantEmptyCache();
 }
 
-
+// 申请新空间，释放旧的 _buckets
 void cache_t::reallocate(mask_t oldCapacity, mask_t newCapacity)
 {
     bool freeOld = canBeFreed();
@@ -587,7 +587,7 @@ static void cache_fill_nolock(Class cls, SEL sel, IMP imp, id receiver)
     }
     else {
         // Cache is too full. Expand it.
-        // 容量 > 3/4 时扩展缓存容量
+        // 容量 > 3/4 时扩展缓存容量，旧的 _buckets 会被放进垃圾中心
         cache->expand();
     }
 

@@ -889,8 +889,8 @@ struct class_rw_t {
     property_array_t properties;
     protocol_array_t protocols;
 
-    Class firstSubclass;
-    Class nextSiblingClass;
+    Class firstSubclass;        // 当前类的第一个子类节点
+    Class nextSiblingClass;     // 当前类的兄弟节点
 
     char *demangledName;
 
@@ -1237,7 +1237,7 @@ struct objc_class : objc_object {
     void setHasCustomRR(bool inherited = false);
     void printCustomRR(bool inherited);
 
-    bool hasCustomAWZ() {
+    bool hasCustomAWZ() {       // 当前类或父类是否有自定义的 alloc/allocWithZone: 
         return ! bits.hasDefaultAWZ();
     }
     void setHasDefaultAWZ() {
@@ -1558,7 +1558,7 @@ foreach_realized_class_and_subclass_2(Class top, unsigned& count,
         if (cls->data()->firstSubclass) {
             cls = cls->data()->firstSubclass;
         } else {
-            while (!cls->data()->nextSiblingClass  &&  cls != top) {
+            while (!cls->data()->nextSiblingClass  &&  cls != top) { // 如果兄弟节点为 nil, 向父节点移动
                 cls = cls->superclass;
                 if (--count == 0) {
                     _objc_fatal("Memory corruption in class list.");
