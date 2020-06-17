@@ -33,7 +33,7 @@ static const objc_selopt_t *builtins = NULL;
 
 static size_t SelrefCount = 0;
 
-static NXMapTable *namedSelectors;
+static NXMapTable *namedSelectors;  // 保存方法名与 SEL 的映射关系
 
 static SEL search_builtins(const char *key);
 
@@ -161,7 +161,7 @@ static SEL __sel_registerName(const char *name, bool shouldLock, bool copy)
     if (!result) {
         result = sel_alloc(name, copy);
         // fixme choose a better container (hash not map for starters)
-        NXMapInsert(namedSelectors, sel_getName(result), result);
+        NXMapInsert(namedSelectors, sel_getName(result), result); // 将 selector 注册到 NXMapTable 表
     }
 
     return result;
