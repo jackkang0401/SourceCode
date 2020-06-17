@@ -392,7 +392,7 @@ bucket_t *allocateBuckets(mask_t newCapacity)
     end->set<NotAtomic>((SEL)(uintptr_t)1, (IMP)(newBuckets - 1));
 #else
     // End marker's sel is 1 and imp points to the first bucket.
-    end->set<NotAtomic>((SEL)(uintptr_t)1, (IMP)newBuckets);  // 有什么作用 ？
+    end->set<NotAtomic>((SEL)(uintptr_t)1, (IMP)newBuckets);
 #endif
     
     if (PrintCaches) recordNewCache(newCapacity);
@@ -421,10 +421,10 @@ bucket_t *emptyBucketsForCapacity(mask_t capacity, bool allocate = true)
 {
     cacheUpdateLock.assertLocked();
 
-    size_t bytes = cache_t::bytesForCapacity(capacity);
+    size_t bytes = cache_t::bytesForCapacity(capacity); // 对应容量所占位数
 
     // Use _objc_empty_cache if the buckets is small enough.
-    if (bytes <= EMPTY_BYTES) {
+    if (bytes <= EMPTY_BYTES) {                 // 小于 ((8+1)*16)
         return (bucket_t *)&_objc_empty_cache;
     }
 
@@ -457,8 +457,8 @@ bucket_t *emptyBucketsForCapacity(mask_t capacity, bool allocate = true)
     return emptyBucketsList[index];
 }
 
-
-bool cache_t::isConstantEmptyCache()
+// 判断是否为常量空 bucket
+bool cache_t::isConstantEmptyCache() // _objc_empty_cache
 {
     return 
         occupied() == 0  &&  
@@ -485,10 +485,10 @@ void cache_t::reallocate(mask_t oldCapacity, mask_t newCapacity)
     assert(newCapacity > 0);
     assert((uintptr_t)(mask_t)(newCapacity-1) == newCapacity-1);
 
-    setBucketsAndMask(newBuckets, newCapacity - 1);         // 执行完 _mask=(_mask+1)*2-1，初始 _mask=3
+    setBucketsAndMask(newBuckets, newCapacity - 1);
     
     if (freeOld) {
-        cache_collect_free(oldBuckets, oldCapacity);
+        cache_collect_free(oldBuckets, oldCapacity); // 将垃圾放入全局的收集容器内
         cache_collect(false);
     }
 }
@@ -546,7 +546,7 @@ void cache_t::expand()
     cacheUpdateLock.assertLocked();
     
     uint32_t oldCapacity = capacity();   // _mask + 1
-    uint32_t newCapacity = oldCapacity ? oldCapacity*2 : INIT_CACHE_SIZE; // (_mask+1)*2，初始为 4
+    uint32_t newCapacity = oldCapacity ? oldCapacity*2 : INIT_CACHE_SIZE; // (_mask+1)*2，初始为 INIT_CACHE_SIZE (4)
 
     // 越界判断
     if ((uint32_t)(mask_t)newCapacity != newCapacity) {
@@ -613,7 +613,7 @@ void cache_fill(Class cls, SEL sel, IMP imp, id receiver)
 
 // Reset this entire cache to the uncached lookup by reallocating it.
 // This must not shrink the cache - that breaks the lock-free scheme.
-void cache_erase_nolock(Class cls)
+void cache_erase_nolock(Class cls) // 清除原先缓存，并申请同样大小的新空间
 {
     cacheUpdateLock.assertLocked();
 
@@ -625,7 +625,7 @@ void cache_erase_nolock(Class cls)
         auto buckets = emptyBucketsForCapacity(capacity);
         cache->setBucketsAndMask(buckets, capacity - 1); // also clears occupied
 
-        cache_collect_free(oldBuckets, capacity);
+        cache_collect_free(oldBuckets, capacity);  // 将垃圾放入全局的收集容器内
         cache_collect(false);
     }
 }
@@ -699,7 +699,7 @@ static uintptr_t _get_pc_for_thread(thread_t thread)
 extern "C" uintptr_t objc_entryPoints[];
 extern "C"  uintptr_t objc_exitPoints[];
 
-static int _collecting_in_critical(void)
+static int _collecting_in_critical(void)        // 检验 executing a cache-reading function
 {
 #if TARGET_OS_WIN32
     return TRUE;
@@ -827,14 +827,14 @@ static void _garbage_make_room(void)
 * precisely the block's size.
 * Cache locks: cacheUpdateLock must be held by the caller.
 **********************************************************************/
-static void cache_collect_free(bucket_t *data, mask_t capacity)
+static void cache_collect_free(bucket_t *data, mask_t capacity) // 将垃圾放入全局的收集容器内
 {
     cacheUpdateLock.assertLocked();
 
     if (PrintCaches) recordDeadCache(capacity);
 
     _garbage_make_room ();
-    garbage_byte_size += cache_t::bytesForCapacity(capacity);
+    garbage_byte_size += cache_t::bytesForCapacity(capacity);   // 记录垃圾大小
     garbage_refs[garbage_count++] = data;
 }
 
@@ -857,7 +857,7 @@ void cache_collect(bool collectALot)
 
     // Done if the garbage is not full
     if (garbage_byte_size < garbage_threshold  &&  !collectALot) {
-        return;
+        return; // 小于 32*1024 直接返回
     }
 
     // Synchronize collection with objc_msgSend and other cache readers
@@ -869,11 +869,11 @@ void cache_collect(bool collectALot)
                 _objc_inform ("CACHES: not collecting; "
                               "objc_msgSend in progress");
             }
-            return;
+            return;         // 留下垃圾直到下次再有其他线程进入临界函数
         }
     } 
     else {
-        // No excuses.
+        // No excuses.      // 一直检验
         while (_collecting_in_critical()) 
             ;
     }
