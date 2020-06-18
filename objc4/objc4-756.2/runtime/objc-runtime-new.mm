@@ -646,7 +646,7 @@ static void printReplacements(Class cls, category_list *cats)
             // Complain about the first duplicate only.
 
             // Look for method in earlier categories
-            for (uint32_t c2 = 0; c2 < c; c2++) {
+            for (uint32_t c2 = 0; c2 < c; c2++) {   // 遍历前边的 method
                 category_t *cat2 = cats->list[c2].cat;
 
                 const method_list_t *mlist2 = cat2->methodsForMeta(isMeta);
@@ -654,10 +654,10 @@ static void printReplacements(Class cls, category_list *cats)
 
                 for (const auto& meth2 : *mlist2) {
                     SEL s2 = sel_registerName(sel_cname(meth2.name));
-                    if (s == s2) {
+                    if (s == s2) {                  // 匹配带一个后就打印，进入下次循环
                         logReplacedMethod(cls->nameForLogging(), s, 
                                           cls->isMetaClass(), cat->name, 
-                                          meth2.imp, meth.imp);
+                                          meth2.imp, meth.imp);// 后边的是新的
                         goto complained;
                     }
                 }
@@ -786,7 +786,7 @@ attachCategories(Class cls, category_list *cats, bool flush_caches)
     int protocount = 0;
     int i = cats->count;
     bool fromBundle = NO;
-    while (i--) {
+    while (i--) {   // 读取分类方法、属性、协议信息，(从后王乾，后边的先添加)
         auto& entry = cats->list[i];
 
         method_list_t *mlist = entry.cat->methodsForMeta(isMeta);
@@ -810,14 +810,14 @@ attachCategories(Class cls, category_list *cats, bool flush_caches)
     auto rw = cls->data();
 
     prepareMethodLists(cls, mlists, mcount, NO, fromBundle);
-    rw->methods.attachLists(mlists, mcount);
+    rw->methods.attachLists(mlists, mcount);            // 添加分类方法
     free(mlists);
     if (flush_caches  &&  mcount > 0) flushCaches(cls);
 
-    rw->properties.attachLists(proplists, propcount);
+    rw->properties.attachLists(proplists, propcount);   // 添加分类属性
     free(proplists);
 
-    rw->protocols.attachLists(protolists, protocount);
+    rw->protocols.attachLists(protolists, protocount);  // 添加分类协议
     free(protolists);
 }
 

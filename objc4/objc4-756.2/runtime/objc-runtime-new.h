@@ -1511,8 +1511,8 @@ struct swift_class_t : objc_class {
 
 
 struct category_t {
-    const char *name;
-    classref_t cls;
+    const char *name;       // 名字
+    classref_t cls;         // 类的引用
     struct method_list_t *instanceMethods;
     struct method_list_t *classMethods;
     struct protocol_list_t *protocols;

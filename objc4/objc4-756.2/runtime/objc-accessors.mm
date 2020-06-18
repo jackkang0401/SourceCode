@@ -44,7 +44,7 @@ StripedMap<spinlock_t> StructLocks;
 StripedMap<spinlock_t> CppObjectLocks;
 
 #define MUTABLE_COPY 2
-
+// atomic 的本质是保证 get set 方法的线程安全，并不是保证修饰的对象的线程安全
 id objc_getProperty(id self, SEL _cmd, ptrdiff_t offset, BOOL atomic) {
     if (offset == 0) {
         return object_getClass(self);
@@ -55,7 +55,7 @@ id objc_getProperty(id self, SEL _cmd, ptrdiff_t offset, BOOL atomic) {
     if (!atomic) return *slot;
         
     // Atomic retain release world
-    spinlock_t& slotlock = PropertyLocks[slot];
+    spinlock_t& slotlock = PropertyLocks[slot]; // 用对象的地址加上成员变量的偏移量为 key
     slotlock.lock();
     id value = objc_retain(*slot);
     slotlock.unlock();

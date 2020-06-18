@@ -153,8 +153,8 @@ namespace objc_references_support {
     inline id UNDISGUISE(disguised_ptr_t dptr) { return id(~dptr); }
   
     class ObjcAssociation {
-        uintptr_t _policy;
-        id _value;
+        uintptr_t _policy;      // 关联策略
+        id _value;              // 关联的值
     public:
         ObjcAssociation(uintptr_t policy, id value) : _policy(policy), _value(value) {}
         ObjcAssociation() : _policy(0), _value(nil) {}
