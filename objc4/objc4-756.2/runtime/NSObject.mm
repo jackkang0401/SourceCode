@@ -794,7 +794,7 @@ class AutoreleasePoolPage
         while (this->next != stop) {
             // Restart from hotPage() every time, in case -release 
             // autoreleased more objects
-            AutoreleasePoolPage *page = hotPage();
+            AutoreleasePoolPage *page = hotPage(); // 每次都调用 hotPage()，应该是这个过程也可能有新对象进来
 
             // fixme I think this `while` can be `if`, but I can't prove it
             while (page->empty()) {
@@ -822,7 +822,7 @@ class AutoreleasePoolPage
 #endif
     }
 
-    void kill() // 先遍历到栈顶 page，接着向栈底释放，到当前 page
+    void kill() // 先遍历到栈顶 page，接着向栈底释放到当前 page (当前 page 也释放)
     {
         // Not recursive: we don't want to blow out the stack 
         // if a thread accumulates a stupendous amount of garbage
@@ -912,7 +912,7 @@ class AutoreleasePoolPage
         tls_set_direct(key, (void *)page);
     }
 
-    static inline AutoreleasePoolPage *coldPage() 
+    static inline AutoreleasePoolPage *coldPage() // 找到无父节点的 page（栈底节点）
     {
         AutoreleasePoolPage *result = hotPage();
         if (result) {
@@ -963,7 +963,7 @@ class AutoreleasePoolPage
         assert(!hotPage());
 
         bool pushExtraBoundary = false;
-        if (haveEmptyPoolPlaceholder()) {
+        if (haveEmptyPoolPlaceholder()) { // EMPTY_POOL_PLACEHOLDER
             // We are pushing a second pool over the empty placeholder pool
             // or pushing the first object into the empty placeholder pool.
             // Before doing that, push a pool boundary on behalf of the pool 
@@ -985,7 +985,7 @@ class AutoreleasePoolPage
             // We are pushing a pool with no pool in place,
             // and alloc-per-pool debugging was not requested.
             // Install and return the empty pool placeholder.
-            return setEmptyPoolPlaceholder();
+            return setEmptyPoolPlaceholder();   // 如果传入对象是边界 POOL_BOUNDARY，先设置为 EMPTY_POOL_PLACEHOLDER，不创建 pool，可防止多次传入 POOL_BOUNDARY，多次创建 pool
         }
 
         // We are pushing an object or a non-placeholder'd pool.
@@ -1026,7 +1026,7 @@ public:
     static inline void *push() 
     {
         id *dest;
-        if (DebugPoolAllocation) {
+        if (DebugPoolAllocation) { // 环境变量标记是否开启 pool 的分配调试模式（runtime 会根据情况开启这个变量）
             // Each autorelease pool starts on a new pool page.
             dest = autoreleaseNewPage(POOL_BOUNDARY);
         } else {
@@ -1074,18 +1074,18 @@ public:
                 pop(coldPage()->begin());           // 找到栈低第一个 page，并在 begin() 进行 pop
             } else {
                 // Pool was never used. Clear the placeholder.
-                setHotPage(nil);
+                setHotPage(nil);                    // 可能为 EMPTY_POOL_PLACEHOLDER，需要清除
             }
             return;
         }
 
-        page = pageForPointer(token);
+        page = pageForPointer(token); // 取出 token 指针对应的 page
         stop = (id *)token;
-        if (*stop != POOL_BOUNDARY) {
+        if (*stop != POOL_BOUNDARY) { // 停止位置不是 POOL_BOUNDARY
             if (stop == page->begin()  &&  !page->parent) {
                 // Start of coldest page may correctly not be POOL_BOUNDARY:
                 // 1. top-level pool is popped, leaving the cold page in place
-                // 2. an object is autoreleased with no pool
+                // 2. an object is autoreleased with no pool // 调用 autorelease 方法时无 page 也就是 pool
             } else {
                 // Error. For bincompat purposes this is not 
                 // fatal in executables built with old SDKs.
@@ -1115,7 +1115,7 @@ public:
                 page->child->kill();
             }
             else if (page->child->child) {
-                page->child->child->kill();
+                page->child->child->kill(); // 如果大于一半，保留 child
             }
         }
     }
