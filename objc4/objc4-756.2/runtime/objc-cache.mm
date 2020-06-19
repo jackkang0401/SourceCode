@@ -475,7 +475,7 @@ void cache_t::reallocate(mask_t oldCapacity, mask_t newCapacity)
 {
     bool freeOld = canBeFreed();
 
-    bucket_t *oldBuckets = buckets();
+    bucket_t *oldBuckets = buckets();                       // 旧的 cache 将释放，缓存数据不写入新 bucket
     bucket_t *newBuckets = allocateBuckets(newCapacity);    // 方法缓存散列表每次分配内存都会放弃之前的缓存
 
     // Cache's old contents are not propagated. 
