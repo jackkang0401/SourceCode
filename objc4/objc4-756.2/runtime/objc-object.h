@@ -226,7 +226,7 @@ objc_object::initIsa(Class cls, bool nonpointer, bool hasCxxDtor)
         newisa.has_cxx_dtor = hasCxxDtor;
         newisa.indexcls = (uintptr_t)cls->classArrayIndex();
 #else
-        newisa.bits = ISA_MAGIC_VALUE;
+        newisa.bits = ISA_MAGIC_VALUE;   // 用于在调试时分辨对象是否未完成初始化
         // isa.magic is part of ISA_MAGIC_VALUE
         // isa.nonpointer is part of ISA_MAGIC_VALUE
         newisa.has_cxx_dtor = hasCxxDtor;

@@ -281,8 +281,8 @@ struct ivar_t {
 
 struct property_t {
     const char *name;
-    const char *attributes;
-};
+    const char *attributes;         // 类型，原子性，内存语义和对应的实例变量
+};// T@”NSString”,C,N,V_string , T 就代表类型，C 就代表Copy，N 代表nonatomic，V 就代表对应的实例变量
 
 // Two bits of entsize are used for fixup markers.
 struct method_list_t : entsize_list_tt<method_t, method_list_t, 0x3> { // 每个 category 对应一个 method_list_t 结构体的指针
