@@ -78,10 +78,10 @@ typedef DisguisedPtr<objc_object *> weak_referrer_t;
 #define REFERRERS_OUT_OF_LINE 2
 
 struct weak_entry_t {
-    DisguisedPtr<objc_object> referent;
+    DisguisedPtr<objc_object> referent;     // 所指对象地址
     union {
         struct {
-            weak_referrer_t *referrers;
+            weak_referrer_t *referrers;     // weak 对象数，大于 WEAK_INLINE_COUNT 时，变为此数据结构
             uintptr_t        out_of_line_ness : 2;
             uintptr_t        num_refs : PTR_MINUS_2;
             uintptr_t        mask;
@@ -89,7 +89,7 @@ struct weak_entry_t {
         };
         struct {
             // out_of_line_ness field is low bits of inline_referrers[1]
-            weak_referrer_t  inline_referrers[WEAK_INLINE_COUNT];
+            weak_referrer_t  inline_referrers[WEAK_INLINE_COUNT];   // weak 对象
         };
     };
 

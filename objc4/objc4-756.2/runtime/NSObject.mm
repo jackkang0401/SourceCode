@@ -295,7 +295,7 @@ storeWeak(id *location, objc_object *newObj)
 
     SideTable::lockTwo<haveOld, haveNew>(oldTable, newTable);
 
-    if (haveOld  &&  *location != oldObj) {
+    if (haveOld  &&  *location != oldObj) {     // 如果旧值改变就重新获取旧值相关联的表
         SideTable::unlockTwo<haveOld, haveNew>(oldTable, newTable);
         goto retry;
     }
@@ -303,7 +303,7 @@ storeWeak(id *location, objc_object *newObj)
     // Prevent a deadlock between the weak reference machinery
     // and the +initialize machinery by ensuring that no 
     // weakly-referenced object has an un-+initialized isa.
-    if (haveNew  &&  newObj) {
+    if (haveNew  &&  newObj) {                  // 在弱引用之前，要确保对象已经成功初始化
         Class cls = newObj->getIsa();
         if (cls != previouslyInitializedClass  &&  
             !((objc_class *)cls)->isInitialized()) 
@@ -317,7 +317,7 @@ storeWeak(id *location, objc_object *newObj)
             // then we may proceed but it will appear initializing and 
             // not yet initialized to the check above.
             // Instead set previouslyInitializedClass to recognize it on retry.
-            previouslyInitializedClass = cls;
+            previouslyInitializedClass = cls;   // 防止 +initialize 内部调用 storeWeak 产生死锁
 
             goto retry;
         }
@@ -325,7 +325,7 @@ storeWeak(id *location, objc_object *newObj)
 
     // Clean up old value, if any.
     if (haveOld) {
-        weak_unregister_no_lock(&oldTable->weak_table, oldObj, location);
+        weak_unregister_no_lock(&oldTable->weak_table, oldObj, location); // 从弱引用表移除该弱引用对象
     }
 
     // Assign new value, if any.
@@ -337,7 +337,7 @@ storeWeak(id *location, objc_object *newObj)
 
         // Set is-weakly-referenced bit in refcount table.
         if (newObj  &&  !newObj->isTaggedPointer()) {
-            newObj->setWeaklyReferenced_nolock();   // 设置弱引用标记
+            newObj->setWeaklyReferenced_nolock();               // 设置弱引用标记
         }
 
         // Do not set *location anywhere else. That would introduce a race.

@@ -92,12 +92,12 @@ static void grow_refs_and_insert(weak_entry_t *entry,
     
     for (size_t i = 0; i < old_size && num_refs > 0; i++) {
         if (old_refs[i] != nil) {
-            append_referrer(entry, old_refs[i]);
+            append_referrer(entry, old_refs[i]);     // 将旧值写入新空间
             num_refs--;
         }
     }
     // Insert
-    append_referrer(entry, new_referrer);
+    append_referrer(entry, new_referrer);            // 插入新值
     if (old_refs) free(old_refs);
 }
 
@@ -314,10 +314,10 @@ weak_entry_for_referent(weak_table_t *weak_table, objc_object *referent)
 
     if (!weak_entries) return nil;
 
-    size_t begin = hash_pointer(referent) & weak_table->mask;
+    size_t begin = hash_pointer(referent) & weak_table->mask;       // hash
     size_t index = begin;
     size_t hash_displacement = 0;
-    while (weak_table->weak_entries[index].referent != referent) {
+    while (weak_table->weak_entries[index].referent != referent) {  // 查找
         index = (index+1) & weak_table->mask;
         if (index == begin) bad_weak_table(weak_table->weak_entries);
         hash_displacement++;
@@ -410,7 +410,7 @@ weak_register_no_lock(weak_table_t *weak_table, id referent_id,
             return nil;
         }
         deallocating =
-            ! (*allowsWeakReference)(referent, SEL_allowsWeakReference);
+            ! (*allowsWeakReference)(referent, SEL_allowsWeakReference); // 执行 allowsWeakReference
     }
 
     if (deallocating) {
