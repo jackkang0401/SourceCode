@@ -79,25 +79,25 @@ static void grow_refs_and_insert(weak_entry_t *entry,
     assert(entry->out_of_line());
 
     size_t old_size = TABLE_SIZE(entry);
-    size_t new_size = old_size ? old_size * 2 : 8;
+    size_t new_size = old_size ? old_size * 2 : 8;          // 空间扩大为 2 倍
 
     size_t num_refs = entry->num_refs;
     weak_referrer_t *old_refs = entry->referrers;
     entry->mask = new_size - 1;
     
     entry->referrers = (weak_referrer_t *)
-        calloc(TABLE_SIZE(entry), sizeof(weak_referrer_t));
+        calloc(TABLE_SIZE(entry), sizeof(weak_referrer_t)); // 开辟新的空间
     entry->num_refs = 0;
     entry->max_hash_displacement = 0;
     
-    for (size_t i = 0; i < old_size && num_refs > 0; i++) {
+    for (size_t i = 0; i < old_size && num_refs > 0; i++) { // 将旧值写入新空间
         if (old_refs[i] != nil) {
-            append_referrer(entry, old_refs[i]);     // 将旧值写入新空间
+            append_referrer(entry, old_refs[i]);
             num_refs--;
         }
     }
     // Insert
-    append_referrer(entry, new_referrer);            // 插入新值
+    append_referrer(entry, new_referrer);                   // 插入新值
     if (old_refs) free(old_refs);
 }
 
@@ -143,7 +143,7 @@ static void append_referrer(weak_entry_t *entry, objc_object **new_referrer)
     size_t begin = w_hash_pointer(new_referrer) & (entry->mask);
     size_t index = begin;
     size_t hash_displacement = 0;
-    while (entry->referrers[index] != nil) {
+    while (entry->referrers[index] != nil) { // 找到一个为 nil 的位置
         hash_displacement++;
         index = (index+1) & entry->mask;
         if (index == begin) bad_weak_table(entry);
@@ -183,11 +183,11 @@ static void remove_referrer(weak_entry_t *entry, objc_object **old_referrer)
         return;
     }
 
-    size_t begin = w_hash_pointer(old_referrer) & (entry->mask);
+    size_t begin = w_hash_pointer(old_referrer) & (entry->mask);// hash 计算索引
     size_t index = begin;
     size_t hash_displacement = 0;
     while (entry->referrers[index] != old_referrer) {
-        index = (index+1) & entry->mask;
+        index = (index+1) & entry->mask;                        // +1 寻找下一个
         if (index == begin) bad_weak_table(entry);
         hash_displacement++;
         if (hash_displacement > entry->max_hash_displacement) {
@@ -200,8 +200,8 @@ static void remove_referrer(weak_entry_t *entry, objc_object **old_referrer)
             return;
         }
     }
-    entry->referrers[index] = nil;
-    entry->num_refs--;
+    entry->referrers[index] = nil;                              // 清空
+    entry->num_refs--;                                          // 数量 -1
 }
 
 /** 
@@ -237,14 +237,14 @@ static void weak_resize(weak_table_t *weak_table, size_t new_size)
 
     weak_entry_t *old_entries = weak_table->weak_entries;
     weak_entry_t *new_entries = (weak_entry_t *)
-        calloc(new_size, sizeof(weak_entry_t));
+        calloc(new_size, sizeof(weak_entry_t));// 开辟新的 new_size 空间
 
     weak_table->mask = new_size - 1;
     weak_table->weak_entries = new_entries;
     weak_table->max_hash_displacement = 0;
     weak_table->num_entries = 0;  // restored by weak_entry_insert below
     
-    if (old_entries) {
+    if (old_entries) {                          // 将旧值写入新空间
         weak_entry_t *entry;
         weak_entry_t *end = old_entries + old_size;
         for (entry = old_entries; entry < end; entry++) {
@@ -268,13 +268,13 @@ static void weak_grow_maybe(weak_table_t *weak_table)
 }
 
 // Shrink the table if it is mostly empty.
-static void weak_compact_maybe(weak_table_t *weak_table)
+static void weak_compact_maybe(weak_table_t *weak_table) // 检查是否可以减小空间，如果可以，减小空间
 {
     size_t old_size = TABLE_SIZE(weak_table);
 
     // Shrink if larger than 1024 buckets and at most 1/16 full.
-    if (old_size >= 1024  && old_size / 16 >= weak_table->num_entries) {
-        weak_resize(weak_table, old_size / 8);
+    if (old_size >= 1024 && old_size / 16 >= weak_table->num_entries) { // >= 1024 && <= 1/16
+        weak_resize(weak_table, old_size / 8);                          // 减小空间为原来的 1/8
         // leaves new table no more than 1/2 full
     }
 }
@@ -326,7 +326,7 @@ weak_entry_for_referent(weak_table_t *weak_table, objc_object *referent)
         }
     }
     
-    return &weak_table->weak_entries[index];
+    return &weak_table->weak_entries[index];                        // 返回
 }
 
 /** 
@@ -357,7 +357,7 @@ weak_unregister_no_lock(weak_table_t *weak_table, id referent_id,
 
     if ((entry = weak_entry_for_referent(weak_table, referent))) {
         remove_referrer(entry, referrer);
-        bool empty = true;
+        bool empty = true;   // 验证 entry 是否还有 weak 引用，如果没有执行移除操作
         if (entry->out_of_line()  &&  entry->num_refs != 0) {
             empty = false;
         }

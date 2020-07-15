@@ -420,11 +420,11 @@ objc_object::rootDealloc()
 {
     if (isTaggedPointer()) return;  // fixme necessary?
 
-    if (fastpath(isa.nonpointer  &&  
-                 !isa.weakly_referenced  &&  
-                 !isa.has_assoc  &&  
-                 !isa.has_cxx_dtor  &&  
-                 !isa.has_sidetable_rc))
+    if (fastpath(isa.nonpointer  &&             // 开启指针优化
+                 !isa.weakly_referenced  &&     // 无弱引用指向
+                 !isa.has_assoc  &&             // 无关联对象
+                 !isa.has_cxx_dtor  &&          // 无 C++ 析构函数
+                 !isa.has_sidetable_rc))        // 未使用 SideTable
     {
         assert(!sidetable_present());
         free(this);

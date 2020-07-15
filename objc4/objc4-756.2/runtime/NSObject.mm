@@ -1240,7 +1240,7 @@ objc_object::clearDeallocating_slow()
         weak_clear_no_lock(&table.weak_table, (id)this);
     }
     if (isa.has_sidetable_rc) {
-        table.refcnts.erase(this);
+        table.refcnts.erase(this);   // 清空 DenseMap 中的引用计数数据
     }
     table.unlock();
 }
@@ -1575,7 +1575,7 @@ objc_object::sidetable_clearDeallocating()
     // (fixme warn or abort if extra retain count == 0 ?)
     table.lock();
     RefcountMap::iterator it = table.refcnts.find(this);
-    if (it != table.refcnts.end()) {
+    if (it != table.refcnts.end()) { // 为了判断是否有弱引用
         if (it->second & SIDE_TABLE_WEAKLY_REFERENCED) {
             weak_clear_no_lock(&table.weak_table, (id)this);
         }
