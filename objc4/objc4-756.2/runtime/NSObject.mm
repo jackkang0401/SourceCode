@@ -294,7 +294,7 @@ storeWeak(id *location, objc_object *newObj)
     }
 
     SideTable::lockTwo<haveOld, haveNew>(oldTable, newTable);
-
+    // location 应该与 oldObj 保持一致，如果不同，说明当前的 location 已经处理过 oldObj 可是又被其他线程所修改
     if (haveOld  &&  *location != oldObj) {     // 如果旧值改变就重新获取旧值相关联的表
         SideTable::unlockTwo<haveOld, haveNew>(oldTable, newTable);
         goto retry;
@@ -337,7 +337,7 @@ storeWeak(id *location, objc_object *newObj)
 
         // Set is-weakly-referenced bit in refcount table.
         if (newObj  &&  !newObj->isTaggedPointer()) {
-            newObj->setWeaklyReferenced_nolock();               // 设置弱引用标记
+            newObj->setWeaklyReferenced_nolock();               // 设置弱引用标记，当前对象存在弱引用
         }
 
         // Do not set *location anywhere else. That would introduce a race.
@@ -459,7 +459,7 @@ objc_destroyWeak(id *location)
 */
 
 id
-objc_loadWeakRetained(id *location)
+objc_loadWeakRetained(id *location)    // retain weak 对象
 {
     id obj;
     id result;
@@ -476,13 +476,13 @@ objc_loadWeakRetained(id *location)
     table = &SideTables()[obj];
     
     table->lock();
-    if (*location != obj) {
+    if (*location != obj) {             // location 应该与 obj 保持一致
         table->unlock();
         goto retry;
     }
     
     result = obj;
-
+    // 尝试调用 retain
     cls = obj->ISA();
     if (! cls->hasCustomRR()) {
         // Fast case. We know +initialize is complete because
@@ -513,7 +513,7 @@ objc_loadWeakRetained(id *location)
     }
         
     table->unlock();
-    return result;
+    return res  ult;
 }
 
 /** 

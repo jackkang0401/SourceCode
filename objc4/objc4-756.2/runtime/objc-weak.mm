@@ -413,7 +413,7 @@ weak_register_no_lock(weak_table_t *weak_table, id referent_id,
             ! (*allowsWeakReference)(referent, SEL_allowsWeakReference); // 执行 allowsWeakReference
     }
 
-    if (deallocating) {
+    if (deallocating) {         // 验证对象是否正在释放
         if (crashIfDeallocating) {
             _objc_fatal("Cannot form weak reference to instance (%p) of "
                         "class %s. It is possible that this object was "
@@ -487,7 +487,7 @@ weak_clear_no_lock(weak_table_t *weak_table, id referent_id)
         objc_object **referrer = referrers[i];
         if (referrer) {
             if (*referrer == referent) {
-                *referrer = nil;
+                *referrer = nil;                // 每个都置为 nil
             }
             else if (*referrer) {
                 _objc_inform("__weak variable at %p holds %p instead of %p. "
