@@ -237,7 +237,7 @@ static void weak_resize(weak_table_t *weak_table, size_t new_size)
 
     weak_entry_t *old_entries = weak_table->weak_entries;
     weak_entry_t *new_entries = (weak_entry_t *)
-        calloc(new_size, sizeof(weak_entry_t));// 开辟新的 new_size 空间
+        calloc(new_size, sizeof(weak_entry_t));// 开辟新的 new_size 空间，自动初始化该内存空间为零
 
     weak_table->mask = new_size - 1;
     weak_table->weak_entries = new_entries;
