@@ -121,14 +121,14 @@ typedef struct classref * classref_t;
 **********************************************************************/
 template <typename Element, typename List, uint32_t FlagMask>
 struct entsize_list_tt {
-    uint32_t entsizeAndFlags;
+    uint32_t entsizeAndFlags;   // entsize 元素的 size
     uint32_t count;
     Element first;
 
-    uint32_t entsize() const {          // 元素 Element 大小
+    uint32_t entsize() const {          // 返回 List 中元素的字节大小（sizeof(Element)）
         return entsizeAndFlags & ~FlagMask;
     }
-    uint32_t flags() const {
+    uint32_t flags() const {            // 返回 flag
         return entsizeAndFlags & FlagMask;
     }
 
@@ -145,7 +145,7 @@ struct entsize_list_tt {
         return byteSize(entsize(), count);
     }
     
-    static size_t byteSize(uint32_t entsize, uint32_t count) {
+    static size_t byteSize(uint32_t entsize, uint32_t count) { // 总字节数
         return sizeof(entsize_list_tt) + (count-1)*entsize;
     }
 
@@ -190,7 +190,7 @@ struct entsize_list_tt {
             , element(&list.getOrEnd(start))
         { }
 
-        const iterator& operator += (ptrdiff_t delta) {
+        const iterator& operator += (ptrdiff_t delta) { // & 的意思是返回引用类型，在内存中不产生被返回值的副本
             element = (Element*)((uint8_t *)element + delta*entsize);
             index += (int32_t)delta;
             return *this;
@@ -209,7 +209,7 @@ struct entsize_list_tt {
 
         iterator& operator ++ () { *this += 1; return *this; }
         iterator& operator -- () { *this -= 1; return *this; }
-        iterator operator ++ (int) {
+        iterator operator ++ (int) {    // 虚拟形参 int 标识 -> 后缀
             iterator result(*this); *this += 1; return result;
         }
         iterator operator -- (int) {
