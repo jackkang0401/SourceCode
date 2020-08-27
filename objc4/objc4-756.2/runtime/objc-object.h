@@ -472,7 +472,7 @@ objc_object::rootTryRetain()
 }
 
 ALWAYS_INLINE id 
-objc_object::rootRetain(bool tryRetain, bool handleOverflow)
+objc_object::rootRetain(bool tryRetain, bool handleOverflow) // 引用计数 +1
 {
     if (isTaggedPointer()) return (id)this;
 

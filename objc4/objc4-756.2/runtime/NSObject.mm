@@ -294,7 +294,7 @@ storeWeak(id *location, objc_object *newObj)
     }
 
     SideTable::lockTwo<haveOld, haveNew>(oldTable, newTable);
-    // location 应该与 oldObj 保持一致，如果不同，说明当前的 location 已经处理过 oldObj 可是又被其他线程所修改
+    // location 应该与 oldObj 保持一致，如果不同，说明当前的 location 已经处理过 oldObj，又被其他线程所修改
     if (haveOld  &&  *location != oldObj) {     // 如果旧值改变就重新获取旧值相关联的表
         SideTable::unlockTwo<haveOld, haveNew>(oldTable, newTable);
         goto retry;
