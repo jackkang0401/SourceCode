@@ -497,11 +497,11 @@ objc_loadWeakRetained(id *location)    // retain weak 对象
         // the lock if necessary in order to avoid deadlocks.
         if (cls->isInitialized() || _thisThreadIsInitializingClass(cls)) {
             BOOL (*tryRetain)(id, SEL) = (BOOL(*)(id, SEL))
-                class_getMethodImplementation(cls, SEL_retainWeakReference);
+                class_getMethodImplementation(cls, SEL_retainWeakReference);// 获取 retain 实现
             if ((IMP)tryRetain == _objc_msgForward) {
                 result = nil;
             }
-            else if (! (*tryRetain)(obj, SEL_retainWeakReference)) {
+            else if (! (*tryRetain)(obj, SEL_retainWeakReference)) {        // retain 调用返回失败
                 result = nil;
             }
         }
@@ -513,7 +513,7 @@ objc_loadWeakRetained(id *location)    // retain weak 对象
     }
         
     table->unlock();
-    return res  ult;
+    return result;
 }
 
 /** 
@@ -551,9 +551,9 @@ objc_loadWeak(id *location)
 void
 objc_copyWeak(id *dst, id *src)
 {
-    id obj = objc_loadWeakRetained(src);
-    objc_initWeak(dst, obj);
-    objc_release(obj);
+    id obj = objc_loadWeakRetained(src);// retain 增加引用计数
+    objc_initWeak(dst, obj);            // 创建弱引用
+    objc_release(obj);                  // 释放原始对象
 }
 
 /** 
