@@ -650,7 +650,7 @@ class AutoreleasePoolPage
 #   define POOL_BOUNDARY nil
     static pthread_key_t const key = AUTORELEASE_POOL_KEY;
     static uint8_t const SCRIBBLE = 0xA3;  // 0xA3A3A3A3 after releasing
-    static size_t const SIZE = 
+    static size_t const SIZE = // 单位 byte
 #if PROTECT_AUTORELEASEPOOL
         PAGE_MAX_SIZE;  // must be multiple of vm page size
 #else
@@ -985,7 +985,7 @@ class AutoreleasePoolPage
             // We are pushing a pool with no pool in place,
             // and alloc-per-pool debugging was not requested.
             // Install and return the empty pool placeholder.
-            return setEmptyPoolPlaceholder();   // 如果传入对象是边界 POOL_BOUNDARY，先设置为 EMPTY_POOL_PLACEHOLDER，不创建 pool，可防止多次传入 POOL_BOUNDARY，多次创建 pool
+            return setEmptyPoolPlaceholder();   // 如果传入对象是边界 POOL_BOUNDARY，先设置为 EMPTY_POOL_PLACEHOLDER，不创建 pool
         }
 
         // We are pushing an object or a non-placeholder'd pool.
@@ -1079,7 +1079,7 @@ public:
             return;
         }
 
-        page = pageForPointer(token); // 取出 token 指针对应的 page
+        page = pageForPointer(token); // 取出 token 指针对应的 page（也就是释放截止的 page）
         stop = (id *)token;
         if (*stop != POOL_BOUNDARY) { // 停止位置不是 POOL_BOUNDARY
             if (stop == page->begin()  &&  !page->parent) {
