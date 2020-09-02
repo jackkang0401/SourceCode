@@ -1324,7 +1324,7 @@ objc_object::sidetable_moveExtraRC_nolock(size_t extra_rc,
     assert(!isa.nonpointer);        // should already be changed to raw pointer
     SideTable& table = SideTables()[this];
 
-    size_t& refcntStorage = table.refcnts[this];
+    size_t& refcntStorage = table.refcnts[this];            // 引用传递
     size_t oldRefcnt = refcntStorage;
     // not deallocating - that was in the isa
     assert((oldRefcnt & SIDE_TABLE_DEALLOCATING) == 0);  
@@ -1349,7 +1349,7 @@ objc_object::sidetable_addExtraRC_nolock(size_t delta_rc)
     SideTable& table = SideTables()[this];
 
     size_t& refcntStorage = table.refcnts[this];
-    size_t oldRefcnt = refcntStorage;
+    size_t oldRefcnt = refcntStorage;                       // 引用传递
     // isa-side bits should not be set here
     assert((oldRefcnt & SIDE_TABLE_DEALLOCATING) == 0);
     assert((oldRefcnt & SIDE_TABLE_WEAKLY_REFERENCED) == 0);
@@ -1575,7 +1575,7 @@ objc_object::sidetable_clearDeallocating()
     // (fixme warn or abort if extra retain count == 0 ?)
     table.lock();
     RefcountMap::iterator it = table.refcnts.find(this);
-    if (it != table.refcnts.end()) { // 为了判断是否有弱引用
+    if (it != table.refcnts.end()) {
         if (it->second & SIDE_TABLE_WEAKLY_REFERENCED) {
             weak_clear_no_lock(&table.weak_table, (id)this);
         }

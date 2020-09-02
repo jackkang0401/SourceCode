@@ -42,10 +42,10 @@ bool prepareOptimizedReturn(ReturnDisposition disposition);
 
 #if SUPPORT_TAGGED_POINTERS
 
-// extern "C"的主要作用就是为了能够正确实现C++代码调用其他C语言代码。加上extern "C"后，会指示编译器这部分代码按C语言（而不是C++）的方式进行编译
+// extern "C" 的主要作用就是为了能够正确实现 C++ 代码调用其他 C 语言代码，并指示编译器这部分代码按 C 语言（而不是 C++ ）的方式进行编译
 extern "C" {
     // extern 修饰的变量或函数可以在本模块或其他模块中使用
-    // static 修饰的变量或函数只能在本模块中使用，因此，被static修饰的变量或者函数不可能被extern C修饰
+    // static 修饰的变量或函数只能在本模块中使用，因此，被 static 修饰的变量或者函数不可能被 extern C 修饰
     extern Class objc_debug_taggedpointer_classes[_OBJC_TAG_SLOT_COUNT];
     extern Class objc_debug_taggedpointer_ext_classes[_OBJC_TAG_EXT_SLOT_COUNT];
 }
@@ -110,7 +110,7 @@ inline bool
 objc_object::isExtTaggedPointer() 
 {
     uintptr_t ptr = _objc_decodeTaggedPointer(this);
-    return (ptr & _OBJC_TAG_EXT_MASK) == _OBJC_TAG_EXT_MASK;
+    return (ptr & _OBJC_TAG_EXT_MASK) == _OBJC_TAG_EXT_MASK; // 高/低 4 位为 1111，为 ext tagged
 }
 
 
@@ -155,7 +155,7 @@ inline Class
 objc_object::ISA() 
 {
     assert(!isTaggedPointer()); 
-#if SUPPORT_INDEXED_ISA // 表示 isa_t 中存放的 Class 信息是一个索引 (在类信息表中查找该类结构地址)
+#if SUPPORT_INDEXED_ISA     // 表示 isa_t 中存放的 Class 信息是一个索引 (在类信息表中查找该类结构地址)
     if (isa.nonpointer) {
         uintptr_t slot = isa.indexcls;
         return classForIndex((unsigned)slot);

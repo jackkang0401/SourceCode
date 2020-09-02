@@ -96,7 +96,7 @@
 #endif
 
 
-#if SUPPORT_INDEXED_ISA
+#if SUPPORT_INDEXED_ISA // 表示 isa_t 中存放的 Class 信息是 Class 的地址，还是一个索引（根据该索引可在类信息表中查找该类结构地址）
 
 # if  __ARM_ARCH_7K__ >= 2  ||  (__arm64__ && !__LP64__)
     // armv7k or arm64_32
