@@ -291,11 +291,11 @@ typedef struct header_info {
 private:
     // Note, this is no longer a pointer, but instead an offset to a pointer
     // from this location.
-    intptr_t mhdr_offset;
+    intptr_t mhdr_offset;   // 保存镜像中的头信息 mach_header_64 相对当前 header_info 的内存地址偏移
 
     // Note, this is no longer a pointer, but instead an offset to a pointer
     // from this location.
-    intptr_t info_offset;
+    intptr_t info_offset;   // 保存镜像中的镜像信息相对当前 header_info 的内存地址偏移
 
     // Do not add fields without editing ObjCModernAbstraction.hpp
 public:

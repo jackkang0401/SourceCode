@@ -232,7 +232,7 @@ static header_info * addHeader(const headerType *mhdr, const char *path, int &to
         // Found an hinfo in the dyld shared cache.
 
         // Weed out duplicates.
-        if (hi->isLoaded()) {
+        if (hi->isLoaded()) { // 在 dyld shared cache 中查找到 mhdr，不允许重复加载
             return NULL;
         }
 
@@ -261,7 +261,7 @@ static header_info * addHeader(const headerType *mhdr, const char *path, int &to
         // Didn't find an hinfo in the dyld shared cache.
 
         // Weed out duplicates
-        for (hi = FirstHeader; hi; hi = hi->getNext()) {
+        for (hi = FirstHeader; hi; hi = hi->getNext()) {    // 1. 不允许重复添加 header_info 到链表
             if (mhdr == hi->mhdr()) return NULL;
         }
 
@@ -270,15 +270,15 @@ static header_info * addHeader(const headerType *mhdr, const char *path, int &to
         unsigned long seg_size;
         const objc_image_info *image_info = _getObjcImageInfo(mhdr,&info_size);
         const uint8_t *objc_segment = getsegmentdata(mhdr,SEG_OBJC,&seg_size);
-        if (!objc_segment  &&  !image_info) return NULL;
+        if (!objc_segment  &&  !image_info) return NULL;    // 2. 若 __OBJC 数据段、镜像信息为空，则直接返回 NULL
 
         // Allocate a header_info entry.
         // Note we also allocate space for a single header_info_rw in the
         // rw_data[] inside header_info.
-        hi = (header_info *)calloc(sizeof(header_info) + sizeof(header_info_rw), 1);
+        hi = (header_info *)calloc(sizeof(header_info) + sizeof(header_info_rw), 1);    // 3. 分配内存空间
 
         // Set up the new header_info entry.
-        hi->setmhdr(mhdr);
+        hi->setmhdr(mhdr);                                  // 4. 设置 header_info 中用于定位镜像头信息的 mhdr_offset
 #if !__OBJC2__
         // mhdr must already be set
         hi->mod_count = 0;
@@ -286,14 +286,14 @@ static header_info * addHeader(const headerType *mhdr, const char *path, int &to
 #endif
         // Install a placeholder image_info if absent to simplify code elsewhere
         static const objc_image_info emptyInfo = {0, 0};
-        hi->setinfo(image_info ?: &emptyInfo);
+        hi->setinfo(image_info ?: &emptyInfo);              // 5. 设置 header_info 中用于定位镜像信息的 info_offset
 
-        hi->setLoaded(true);
-        hi->setAllClassesRealized(NO);
+        hi->setLoaded(true);                                // 6. 设置镜像 isLoaded 为 YES，表示镜像已加载
+        hi->setAllClassesRealized(NO);                      // 7. 标记镜像中定义的类尚未开始 class realizing
     }
 
 #if __OBJC2__
-    {
+    {   // 8. 统计镜像中包含的类的总数
         size_t count = 0;
         if (_getObjc2ClassList(hi, &count)) {
             totalClasses += (int)count;
@@ -301,7 +301,7 @@ static header_info * addHeader(const headerType *mhdr, const char *path, int &to
         }
     }
 #endif
-
+    // 9. 将构建的 header_info 添加到全局的已加载镜像链表，添加到链表末尾
     appendHeader(hi);
     
     return hi;
@@ -449,7 +449,7 @@ map_images_nolock(unsigned mhCount, const char * const mhPaths[],
     // This function is called before ordinary library initializers. 
     // fixme defer initialization until an objc-using image is found?
     if (firstTime) {
-        preopt_init();
+        preopt_init(); // 预优化环境初始化
     }
 
     if (PrintImages) {
@@ -458,22 +458,22 @@ map_images_nolock(unsigned mhCount, const char * const mhPaths[],
 
 
     // Find all images with Objective-C metadata.
-    hCount = 0;
+    hCount = 0;                         // 所有 包含Objective-C元素的镜像
 
     // Count classes. Size various table based on the total.
-    int totalClasses = 0;
-    int unoptimizedTotalClasses = 0;
-    {
+    int totalClasses = 0;               // 类的总数
+    int unoptimizedTotalClasses = 0;    // 未优化的类的总数
+    {   // 遍历镜像中所有元素信息，逐一转换成 header_info，并添加到 hList
         uint32_t i = mhCount;
         while (i--) {
             const headerType *mhdr = (const headerType *)mhdrs[i];
-
+            // 核心：将 headerType 转化为 header_info 类型并添加到一张全局的链表中，返回 header_info 类型的转化结果
             auto hi = addHeader(mhdr, mhPaths[i], totalClasses, unoptimizedTotalClasses);
             if (!hi) {
                 // no objc data in this entry
                 continue;
             }
-            
+            // 一些可执行文件的初始化代码
             if (mhdr->filetype == MH_EXECUTE) {
                 // Size some data structures based on main executable's size
 #if __OBJC2__
@@ -518,8 +518,8 @@ map_images_nolock(unsigned mhCount, const char * const mhPaths[],
     // executable does not contain Objective-C code but Objective-C 
     // is dynamically loaded later.
     if (firstTime) {
-        sel_init(selrefCount);
-        arr_init();
+        sel_init(selrefCount);  // 初始化一些最基本的选择器，如 alloc、dealloc、initialize、load 等
+        arr_init();             // 初始化 AutoreleasePool 和 SideTable
 
 #if SUPPORT_GC_COMPAT
         // Reject any GC images linked to the main executable.
@@ -572,7 +572,7 @@ map_images_nolock(unsigned mhCount, const char * const mhPaths[],
 #endif
 
     }
-
+    // 核心：加载二进制文件中的元素，包括类、分类、协议等
     if (hCount > 0) {
         _read_images(hList, hCount, totalClasses, unoptimizedTotalClasses);
     }
@@ -872,10 +872,10 @@ void _objc_atfork_child()
 * Called by libSystem BEFORE library initialization time
 **********************************************************************/
 
-void _objc_init(void)
+void _objc_init(void) // 操作系统执行 _objc_init() 后，开始加载 Objective-C 应用
 {
     static bool initialized = false;
-    if (initialized) return;
+    if (initialized) return;    // _objc_init 全局只调用一次
     initialized = true;
     
     // fixme defer initialization until an objc-using image is found?
@@ -884,7 +884,7 @@ void _objc_init(void)
     static_init();
     lock_init();
     exception_init();
-
+    // 注册回调：1.镜像完成绑定触发 map_images 2.镜像的依赖库完成初始化触发 load_images 3.卸载镜像触发 unmap_image
     _dyld_objc_notify_register(&map_images, load_images, unmap_image);
 }
 

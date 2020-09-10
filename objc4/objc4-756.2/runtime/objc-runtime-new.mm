@@ -786,7 +786,7 @@ attachCategories(Class cls, category_list *cats, bool flush_caches)
     int protocount = 0;
     int i = cats->count;
     bool fromBundle = NO;
-    while (i--) {   // 读取分类方法、属性、协议信息，(从后王乾，后边的先添加)
+    while (i--) {   // 读取分类方法、属性、协议信息，(从后网前，后边的先添加)
         auto& entry = cats->list[i];
 
         method_list_t *mlist = entry.cat->methodsForMeta(isMeta);
@@ -2402,7 +2402,7 @@ void _objc_flush_caches(Class cls)
 **********************************************************************/
 void
 map_images(unsigned count, const char * const paths[],
-           const struct mach_header * const mhdrs[])
+           const struct mach_header * const mhdrs[]) // 加载镜像中定义的 Objective-C 元素
 {
     mutex_locker_t lock(runtimeLock);
     return map_images_nolock(count, paths, mhdrs);

@@ -121,11 +121,11 @@ typedef struct classref * classref_t;
 **********************************************************************/
 template <typename Element, typename List, uint32_t FlagMask>
 struct entsize_list_tt {
-    uint32_t entsizeAndFlags;   // entsize 元素的 size
+    uint32_t entsizeAndFlags;   // entsize 单个元素的 size
     uint32_t count;
     Element first;
 
-    uint32_t entsize() const {          // 返回 List 中元素的字节大小（sizeof(Element)）
+    uint32_t entsize() const {          // 返回 List 中单个元素的字节大小（sizeof(Element)）
         return entsizeAndFlags & ~FlagMask;
     }
     uint32_t flags() const {            // 返回 flag
@@ -191,12 +191,12 @@ struct entsize_list_tt {
         { }
 
         const iterator& operator += (ptrdiff_t delta) { // & 的意思是返回引用类型，在内存中不产生被返回值的副本
-            element = (Element*)((uint8_t *)element + delta*entsize);
+            element = (Element*)((uint8_t *)element + delta*entsize); // element 前移 delta
             index += (int32_t)delta;
             return *this;
         }
         const iterator& operator -= (ptrdiff_t delta) {
-            element = (Element*)((uint8_t *)element - delta*entsize);
+            element = (Element*)((uint8_t *)element - delta*entsize); // element 后移 delta
             index -= (int32_t)delta;
             return *this;
         }
@@ -660,8 +660,8 @@ class list_array_tt {
 
  protected:
     class iterator {
-        List **lists;       // 当前迭代的 List *
-        List **listsEnd;    // 最后一个(结尾) List *
+        List **lists;       // 当前迭代的 List*
+        List **listsEnd;    // 最后一个(结尾) List*
         typename List::iterator m, mEnd;
 
      public:
@@ -669,8 +669,8 @@ class list_array_tt {
             : lists(begin), listsEnd(end)
         {
             if (begin != end) {
-                m = (*begin)->begin();      // 设置为第一个 List * 的 begin
-                mEnd = (*begin)->end();     // 设置为第一个 List * 的 end
+                m = (*begin)->begin();      // 设置为第一个 List* 的 begin
+                mEnd = (*begin)->end();     // 设置为第一个 List* 的 end
             }
         }
 
@@ -683,7 +683,7 @@ class list_array_tt {
 
         bool operator != (const iterator& rhs) const {
             if (lists != rhs.lists) return true;
-            if (lists == listsEnd) return false;  // m is undefined
+            if (lists == listsEnd) return false;    // lists 指向最后视为相等
             if (m != rhs.m) return true;
             return false;
         }
@@ -691,7 +691,7 @@ class list_array_tt {
         const iterator& operator ++ () {
             assert(m != mEnd);
             m++;
-            if (m == mEnd) {    // 当前 List * 已遍历完，开始遍历下一个 List *
+            if (m == mEnd) {        // 当前 List* 已遍历完，开始遍历下一个 List*
                 assert(lists != listsEnd);
                 lists++;
                 if (lists != listsEnd) {
@@ -706,14 +706,14 @@ class list_array_tt {
  private:
     union {
         List* list;
-        uintptr_t arrayAndFlag; // 值为 ((array_t *) | 1)
+        uintptr_t arrayAndFlag; // 值为 ((array_t*) | 1)，标记当前存储的事一个 List*，还是一组 array_t*
     };
 
     bool hasArray() const {
         return arrayAndFlag & 1;
     }
 
-    array_t *array() {  // array_t * 结构体指针 array()->lists
+    array_t *array() {          // array_t* 结构体指针 array()->lists
         return (array_t *)(arrayAndFlag & ~1);
     }
 
@@ -744,7 +744,7 @@ class list_array_tt {
     }
 
 
-    uint32_t countLists() {
+    uint32_t countLists() {     // List* 个数
         if (hasArray()) {
             return array()->count;
         } else if (list) {
@@ -779,10 +779,10 @@ class list_array_tt {
             // many lists -> many lists
             uint32_t oldCount = array()->count;
             uint32_t newCount = oldCount + addedCount;
-            setArray((array_t *)realloc(array(), array_t::byteSize(newCount)));
+            setArray((array_t *)realloc(array(), array_t::byteSize(newCount))); // 尝试重新调整之前调用 malloc 或 calloc 所分配的 ptr 所指向的内存块的大小
             array()->count = newCount;
-            memmove(array()->lists + addedCount, array()->lists,    // void    *memmove(void *__dst, const void *__src, size_t __len);
-                    oldCount * sizeof(array()->lists[0]));          // 由 __src 所指内存区域复制 __len 个字节到 __dst 所指内存区域
+            memmove(array()->lists + addedCount, array()->lists,    // void *memmove(void *__dst, const void *__src, size_t __len);
+                    oldCount * sizeof(array()->lists[0]));          // 由 __src 所指内存区域复制 __len 个字节到 __dst 所指内存区域，旧元素后移 addedCount 个单位
             memcpy(array()->lists, addedLists,
                    addedCount * sizeof(array()->lists[0]));         // 新值写在靠前位置
         }

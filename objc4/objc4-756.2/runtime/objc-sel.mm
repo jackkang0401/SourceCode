@@ -48,7 +48,7 @@ void sel_init(size_t selrefCount)
     SelrefCount = selrefCount;
 
 #if SUPPORT_PREOPT
-    builtins = preoptimizedSelectors();
+    builtins = preoptimizedSelectors(); // 预处理优化Selector
 
     if (PrintPreopt  &&  builtins) {
         uint32_t occupied = builtins->occupied;
@@ -63,7 +63,7 @@ void sel_init(size_t selrefCount)
 #endif
 
     // Register selectors used by libobjc
-
+// sel_registerNameNoLock 用于将 SE L添加到全局的 namedSelectors 哈希表中，方便系统快速判断某个 SEL 是否可识别
 #define s(x) SEL_##x = sel_registerNameNoLock(#x, NO)
 #define t(x,y) SEL_##y = sel_registerNameNoLock(#x, NO)
 
