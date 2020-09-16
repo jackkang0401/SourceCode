@@ -305,7 +305,7 @@ objc_object::changeIsa(Class newCls)
         // Copy oldisa's retain count et al to side table.
         // oldisa.has_assoc: nothing to do
         // oldisa.has_cxx_dtor: nothing to do
-        sidetable_moveExtraRC_nolock(oldisa.extra_rc, 
+        sidetable_moveExtraRC_nolock(oldisa.extra_rc,       // 添加旧 isa 的 extra_rc 计数到 SideTable
                                      oldisa.deallocating, 
                                      oldisa.weakly_referenced);
     }
