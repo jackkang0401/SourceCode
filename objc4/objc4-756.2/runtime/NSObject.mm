@@ -1358,7 +1358,7 @@ objc_object::sidetable_addExtraRC_nolock(size_t delta_rc)
 
     uintptr_t carry;
     size_t newRefcnt = 
-        addc(oldRefcnt, delta_rc << SIDE_TABLE_RC_SHIFT, 0, &carry);
+        addc(oldRefcnt, delta_rc << SIDE_TABLE_RC_SHIFT, 0, &carry); // 最低两位是有意义的标志位 正在释放，是否有弱引用
     if (carry) { // 溢出引用计数置为 SIDE_TABLE_RC_PINNED，因为 oldRefcnt & SIDE_TABLE_FLAG_MASK = 0
         refcntStorage =
             SIDE_TABLE_RC_PINNED | (oldRefcnt & SIDE_TABLE_FLAG_MASK);

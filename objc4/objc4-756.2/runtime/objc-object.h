@@ -292,21 +292,21 @@ objc_object::changeIsa(Class newCls)
             // prevent races such as concurrent -release.
             if (!sideTableLocked) sidetable_lock();
             sideTableLocked = true;
-            transcribeToSideTable = true;
-            newisa.cls = newCls;
+            transcribeToSideTable = true;       // 标记需要将旧的引用计数移入 SideTable
+            newisa.cls = newCls;                // 交换 isa 后不再使用 nonpointer，isa 只代表类的地址
         }
         else {
             // raw pointer -> raw pointer
             newisa.cls = newCls;
         }
-    } while (!StoreExclusive(&isa.bits, oldisa.bits, newisa.bits));
+    } while (!StoreExclusive(&isa.bits, oldisa.bits, newisa.bits)); // 如果 dst == oldvalue，就将 value 写入 dst
 
     if (transcribeToSideTable) {
         // Copy oldisa's retain count et al to side table.
         // oldisa.has_assoc: nothing to do
         // oldisa.has_cxx_dtor: nothing to do
         sidetable_moveExtraRC_nolock(oldisa.extra_rc,       // 添加旧 isa 的 extra_rc 计数到 SideTable
-                                     oldisa.deallocating, 
+                                     oldisa.deallocating,   // 未见哪里设置 has_sidetable_rc，因为交换后不使用 nonpointer
                                      oldisa.weakly_referenced);
     }
 
@@ -505,7 +505,7 @@ objc_object::rootRetain(bool tryRetain, bool handleOverflow) // 引用计数 +1
             // newisa.extra_rc++ overflowed
             if (!handleOverflow) {
                 ClearExclusive(&isa.bits);
-                return rootRetain_overflow(tryRetain);
+                return rootRetain_overflow(tryRetain);  // 处理进位，重新执行 rootRetain 方法，并传入 handleOverflow = true
             }
             // Leave half of the retain counts inline and 
             // prepare to copy the other half to the side table.
@@ -515,7 +515,7 @@ objc_object::rootRetain(bool tryRetain, bool handleOverflow) // 引用计数 +1
             newisa.extra_rc = RC_HALF;
             newisa.has_sidetable_rc = true;
         }
-    } while (slowpath(!StoreExclusive(&isa.bits, oldisa.bits, newisa.bits)));
+    } while (slowpath(!StoreExclusive(&isa.bits, oldisa.bits, newisa.bits))); // 如果 dst == oldvalue，就将 value 写入 dst
 
     if (slowpath(transcribeToSideTable)) {
         // Copy the other half of the retain counts to the side table.
@@ -579,7 +579,7 @@ objc_object::rootRelease(bool performDealloc, bool handleUnderflow)
         oldisa = LoadExclusive(&isa.bits);
         newisa = oldisa;
         if (slowpath(!newisa.nonpointer)) {
-            ClearExclusive(&isa.bits);
+            ClearExclusive(&isa.bits);      // 解除锁，arm64 使用 clrex 指令
             if (sideTableLocked) sidetable_unlock();
             return sidetable_release(performDealloc);
         }
@@ -596,7 +596,7 @@ objc_object::rootRelease(bool performDealloc, bool handleUnderflow)
     if (slowpath(sideTableLocked)) sidetable_unlock();
     return false;
 
- underflow:
+ underflow: // 借位
     // newisa.extra_rc-- underflowed: borrow from side table or deallocate
 
     // abandon newisa to undo the decrement
@@ -605,12 +605,12 @@ objc_object::rootRelease(bool performDealloc, bool handleUnderflow)
     if (slowpath(newisa.has_sidetable_rc)) {
         if (!handleUnderflow) {
             ClearExclusive(&isa.bits);
-            return rootRelease_underflow(performDealloc); // 再执行 rootRelease，处理下溢
+            return rootRelease_underflow(performDealloc);   // 再执行 rootRelease，处理下溢
         }
 
         // Transfer retain count from side table to inline storage.
 
-        if (!sideTableLocked) {
+        if (!sideTableLocked) {         // 如果没加锁，加锁重试
             ClearExclusive(&isa.bits);
             sidetable_lock();
             sideTableLocked = true;
@@ -620,7 +620,7 @@ objc_object::rootRelease(bool performDealloc, bool handleUnderflow)
         }
 
         // Try to remove some retain counts from the side table.        
-        size_t borrowed = sidetable_subExtraRC_nolock(RC_HALF);
+        size_t borrowed = sidetable_subExtraRC_nolock(RC_HALF); // 借 RC_HALF
 
         // To avoid races, has_sidetable_rc must remain set 
         // even if the side table count is now zero.
@@ -630,8 +630,8 @@ objc_object::rootRelease(bool performDealloc, bool handleUnderflow)
             // Try to add them to the inline count.
             newisa.extra_rc = borrowed - 1;  // redo the original decrement too
             bool stored = StoreReleaseExclusive(&isa.bits, 
-                                                oldisa.bits, newisa.bits);
-            if (!stored) {
+                                                oldisa.bits, newisa.bits);      // 1.存储更改后的 isa.bit
+            if (!stored) {                                                      // 2.如果存储失败，即刻重试一次
                 // Inline update failed. 
                 // Try it again right now. This prevents livelock on LL/SC 
                 // architectures where the side table access itself may have 
@@ -649,7 +649,7 @@ objc_object::rootRelease(bool performDealloc, bool handleUnderflow)
                 }
             }
 
-            if (!stored) {
+            if (!stored) {                                                      // 3.如果还是更新失败，则回滚操作并 retry
                 // Inline update failed.
                 // Put the retains back in the side table.
                 sidetable_addExtraRC_nolock(borrowed);
@@ -680,7 +680,7 @@ objc_object::rootRelease(bool performDealloc, bool handleUnderflow)
     if (!StoreExclusive(&isa.bits, oldisa.bits, newisa.bits)) goto retry;
 
     if (slowpath(sideTableLocked)) sidetable_unlock();
-
+    // 借位失败，无引用计数，释放对象
     __sync_synchronize();
     if (performDealloc) {
         ((void(*)(objc_object *, SEL))objc_msgSend)(this, SEL_dealloc);
