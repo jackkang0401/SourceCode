@@ -6111,7 +6111,7 @@ addMethod(Class cls, SEL name, IMP imp, const char *types, bool replace)
     if ((m = getMethodNoSuper_nolock(cls, name))) {
         // already exists
         if (!replace) {
-            result = m->imp;
+            result = m->imp;                            // 如果不进行替换，保存原始细线并返回
         } else {
             result = _method_setImplementation(cls, m, imp);
         }
@@ -6127,8 +6127,8 @@ addMethod(Class cls, SEL name, IMP imp, const char *types, bool replace)
         newlist->first.imp = imp;
 
         prepareMethodLists(cls, &newlist, 1, NO, NO);   // 对方法列表排序
-        cls->data()->methods.attachLists(&newlist, 1);  // 插入 newlist
-        flushCaches(cls);                               // 清除缓存
+        cls->data()->methods.attachLists(&newlist, 1);  // methods（method_array_t） 插入 newlist（method_list_t）
+        flushCaches(cls);                               // 插入完毕后需要，清除方法缓存
 
         result = nil;
     }
@@ -6476,7 +6476,7 @@ look_up_class(const char *name,
         auto *tls = _objc_fetch_pthread_data(true);
 
         // Stop if this thread is already looking up this name.
-        for (unsigned i = 0; i < tls->classNameLookupsUsed; i++) {
+        for (unsigned i = 0; i < tls->classNameLookupsUsed; i++) {          // 如果当前线程正在查找，直接返回 nil
             if (0 == strcmp(name, tls->classNameLookups[i])) {
                 return nil;
             }
@@ -6489,9 +6489,9 @@ look_up_class(const char *name,
             size_t size = tls->classNameLookupsAllocated *
                 sizeof(tls->classNameLookups[0]);
             tls->classNameLookups = (const char **)
-                realloc(tls->classNameLookups, size);
+                realloc(tls->classNameLookups, size);   // 开辟新缓存空间
         }
-        tls->classNameLookups[tls->classNameLookupsUsed++] = name;
+        tls->classNameLookups[tls->classNameLookupsUsed++] = name;          // 记录已查找改类名
 
         // Call the hook.
         Class swiftcls = nil;
@@ -6504,7 +6504,7 @@ look_up_class(const char *name,
         unsigned slot = --tls->classNameLookupsUsed;
         assert(slot >= 0  &&  slot < tls->classNameLookupsAllocated);
         assert(name == tls->classNameLookups[slot]);
-        tls->classNameLookups[slot] = nil;
+        tls->classNameLookups[slot] = nil;                                  // 查找完毕，清空记录
     }
 
     return result;
