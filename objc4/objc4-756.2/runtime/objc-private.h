@@ -769,8 +769,14 @@ class StripedMap {
     T& operator[] (const void *p) { 
         return array[indexForPointer(p)].value; 
     }
-    const T& operator[] (const void *p) const { 
-        return const_cast<StripedMap<T>>(this)[p]; 
+    /*
+        1. const 对象只能访问 const 函数
+        2. 非 const 对象可访问访问 const/非const 函数(优先访问非const，无非 const 才访问 const 函数)
+        3. const 函数可访问 const/非const 数据成员
+        4. const 指针修饰的是被隐藏的 this 指针所指向的内存空间，修饰的是 this 指针
+     */
+    const T& operator[] (const void *p) const {
+        return const_cast<StripedMap<T>>(this)[p];  // const_cast 转换符是用来移除变量的 const 或 volatile 限定符
     }
 
     // Shortcuts for StripedMaps of locks.
