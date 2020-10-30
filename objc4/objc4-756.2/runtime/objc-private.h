@@ -857,19 +857,19 @@ class DisguisedPtr {
     DisguisedPtr(const DisguisedPtr<T>& ptr) 
         : value(ptr.value) { }
 
-    DisguisedPtr<T>& operator = (T* rhs) {
+    DisguisedPtr<T>& operator = (T* rhs) {      // 赋值函数
         value = disguise(rhs);
         return *this;
     }
-    DisguisedPtr<T>& operator = (const DisguisedPtr<T>& rhs) {
+    DisguisedPtr<T>& operator = (const DisguisedPtr<T>& rhs) {  // 引用赋值函数
         value = rhs.value;
         return *this;
     }
 
-    operator T* () const {
+    operator T* () const {          // 类型转换重载，如果需要 T* 的地方，传递一个 DisguisedPtr 对象会转型为 T*
         return undisguise(value);
     }
-    T* operator -> () const { 
+    T* operator -> () const {       // 返回值通过 -> 调用方法
         return undisguise(value);
     }
     T& operator * () const { 

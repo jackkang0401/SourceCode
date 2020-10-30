@@ -90,7 +90,7 @@ static void grow_refs_and_insert(weak_entry_t *entry,
     entry->num_refs = 0;
     entry->max_hash_displacement = 0;
     
-    for (size_t i = 0; i < old_size && num_refs > 0; i++) { // 将旧值写入新空间
+    for (size_t i = 0; i < old_size && num_refs > 0; i++) { // 将旧值依次写入新空间
         if (old_refs[i] != nil) {
             append_referrer(entry, old_refs[i]);
             num_refs--;
@@ -140,10 +140,10 @@ static void append_referrer(weak_entry_t *entry, objc_object **new_referrer)
     if (entry->num_refs >= TABLE_SIZE(entry) * 3/4) {
         return grow_refs_and_insert(entry, new_referrer);
     }
-    size_t begin = w_hash_pointer(new_referrer) & (entry->mask);
+    size_t begin = w_hash_pointer(new_referrer) & (entry->mask);    // 计算索引其实位置
     size_t index = begin;
     size_t hash_displacement = 0;
-    while (entry->referrers[index] != nil) { // 找到一个为 nil 的位置
+    while (entry->referrers[index] != nil) {                        // 找到一个为 nil 的位置
         hash_displacement++;
         index = (index+1) & entry->mask;
         if (index == begin) bad_weak_table(entry);
@@ -152,7 +152,7 @@ static void append_referrer(weak_entry_t *entry, objc_object **new_referrer)
         entry->max_hash_displacement = hash_displacement;
     }
     weak_referrer_t &ref = entry->referrers[index];
-    ref = new_referrer;
+    ref = new_referrer;                                             // new_referrer 存入找到的位置
     entry->num_refs++;
 }
 
