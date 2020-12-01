@@ -2360,13 +2360,13 @@ static void flushCaches(Class cls)
     mutex_locker_t lock(cacheUpdateLock);
 
     if (cls) {
-        foreach_realized_class_and_subclass(cls, ^(Class c){
-            cache_erase_nolock(c);
+        foreach_realized_class_and_subclass(cls, ^(Class c){    // 遍历当前类及子类
+            cache_erase_nolock(c);      // 清空缓存
         });
     }
     else {
-        foreach_realized_class_and_metaclass(^(Class c){
-            cache_erase_nolock(c);
+        foreach_realized_class_and_metaclass(^(Class c){        // 遍历全部类
+            cache_erase_nolock(c);      // 清空缓存
         });
     }
 }
@@ -6111,7 +6111,7 @@ addMethod(Class cls, SEL name, IMP imp, const char *types, bool replace)
     if ((m = getMethodNoSuper_nolock(cls, name))) {
         // already exists
         if (!replace) {
-            result = m->imp;                            // 如果不进行替换，保存原始细线并返回
+            result = m->imp;                            // 如果不进行替换，保存原始实现并返回
         } else {
             result = _method_setImplementation(cls, m, imp);
         }

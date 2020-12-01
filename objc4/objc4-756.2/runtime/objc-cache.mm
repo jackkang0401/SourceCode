@@ -622,10 +622,10 @@ void cache_erase_nolock(Class cls) // 清除原先缓存，并申请同样大小
     mask_t capacity = cache->capacity();
     if (capacity > 0  &&  cache->occupied() > 0) {
         auto oldBuckets = cache->buckets();
-        auto buckets = emptyBucketsForCapacity(capacity);
-        cache->setBucketsAndMask(buckets, capacity - 1); // also clears occupied
+        auto buckets = emptyBucketsForCapacity(capacity);   // 获取 capacity 对应的空 bucket，作为站位空间
+        cache->setBucketsAndMask(buckets, capacity - 1);    // also clears occupied
 
-        cache_collect_free(oldBuckets, capacity);  // 将垃圾放入全局的收集容器内
+        cache_collect_free(oldBuckets, capacity);           // 将垃圾放入全局的收集容器内
         cache_collect(false);
     }
 }
@@ -862,7 +862,7 @@ void cache_collect(bool collectALot)
 
     // Synchronize collection with objc_msgSend and other cache readers
     if (!collectALot) {
-        if (_collecting_in_critical ()) {
+        if (_collecting_in_critical()) {
             // objc_msgSend (or other cache reader) is currently looking in
             // the cache and might still be using some garbage.
             if (PrintCaches) {

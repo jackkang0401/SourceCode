@@ -1576,7 +1576,7 @@ extern unsigned int unreasonableClassCount();
 // Enumerates a class and all of its realized subclasses.
 static inline void
 foreach_realized_class_and_subclass(Class top,
-                                    std::function<void (Class)> code)
+                                    std::function<void (Class)> code)       // 遍历某个类及子类
 {
     unsigned int count = unreasonableClassCount();
 
@@ -1590,7 +1590,7 @@ foreach_realized_class_and_subclass(Class top,
 
 // Enumerates all realized classes and metaclasses.
 static inline void
-foreach_realized_class_and_metaclass(std::function<void (Class)> code) 
+foreach_realized_class_and_metaclass(std::function<void (Class)> code)      // 遍历全部类
 {
     unsigned int count = unreasonableClassCount();
     
