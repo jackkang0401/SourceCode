@@ -119,7 +119,7 @@ struct weak_entry_t {
 struct weak_table_t {
     weak_entry_t *weak_entries;
     size_t    num_entries;
-    uintptr_t mask; // (mask+1)>=1024 && (mask+1)<=1/16, 减小空间为原空间的 1/8 (移除entry时检查)
+    uintptr_t mask;     // (mask+1)>=1024 && (mask+1)<=1/16, 减小空间为原空间的 1/8 (移除entry时检查)
     uintptr_t max_hash_displacement;
 };
 

@@ -839,7 +839,7 @@ class StripedMap {
 // which means 0x80..00 is also disguised as itself but we don't care.
 // Note that weak_entry_t knows about this encoding.
 template <typename T>
-class DisguisedPtr {
+class DisguisedPtr {        // 对泛型对象的指针的封装,通过这个泛型类来解决内存泄露的问题
     uintptr_t value;
 
     static uintptr_t disguise(T* ptr) {

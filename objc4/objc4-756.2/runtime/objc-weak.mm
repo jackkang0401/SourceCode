@@ -137,15 +137,15 @@ static void append_referrer(weak_entry_t *entry, objc_object **new_referrer)
 
     assert(entry->out_of_line());
 
-    if (entry->num_refs >= TABLE_SIZE(entry) * 3/4) {
+    if (entry->num_refs >= TABLE_SIZE(entry) * 3/4) {               // 使用空间大于 3/4 扩大 2 倍
         return grow_refs_and_insert(entry, new_referrer);
     }
-    size_t begin = w_hash_pointer(new_referrer) & (entry->mask);    // 计算索引其实位置
+    size_t begin = w_hash_pointer(new_referrer) & (entry->mask);    // 计算索引位置
     size_t index = begin;
     size_t hash_displacement = 0;
     while (entry->referrers[index] != nil) {                        // 找到一个为 nil 的位置
         hash_displacement++;
-        index = (index+1) & entry->mask;
+        index = (index+1) & entry->mask;                            // +1 寻找下一个
         if (index == begin) bad_weak_table(entry);
     }
     if (hash_displacement > entry->max_hash_displacement) {
@@ -371,7 +371,7 @@ weak_unregister_no_lock(weak_table_t *weak_table, id referent_id,
         }
 
         if (empty) {
-            weak_entry_remove(weak_table, entry);
+            weak_entry_remove(weak_table, entry);       // entry 中无 referrer，移除 entry
         }
     }
 
@@ -463,7 +463,7 @@ weak_clear_no_lock(weak_table_t *weak_table, id referent_id)
 {
     objc_object *referent = (objc_object *)referent_id;
 
-    weak_entry_t *entry = weak_entry_for_referent(weak_table, referent);
+    weak_entry_t *entry = weak_entry_for_referent(weak_table, referent);    // 找到 weak_entry_t
     if (entry == nil) {
         /// XXX shouldn't happen, but does with mismatched CF/objc
         //printf("XXX no entry for clear deallocating %p\n", referent);
@@ -483,11 +483,11 @@ weak_clear_no_lock(weak_table_t *weak_table, id referent_id)
         count = WEAK_INLINE_COUNT;
     }
     
-    for (size_t i = 0; i < count; ++i) {
+    for (size_t i = 0; i < count; ++i) {                                    // 遍历 weak_entry_t
         objc_object **referrer = referrers[i];
         if (referrer) {
             if (*referrer == referent) {
-                *referrer = nil;                // 每个都置为 nil
+                *referrer = nil;                                            // 每个都置为 nil
             }
             else if (*referrer) {
                 _objc_inform("__weak variable at %p holds %p instead of %p. "
@@ -500,6 +500,6 @@ weak_clear_no_lock(weak_table_t *weak_table, id referent_id)
         }
     }
     
-    weak_entry_remove(weak_table, entry);
+    weak_entry_remove(weak_table, entry);                                   // 删除 weak_entry_t
 }
 
