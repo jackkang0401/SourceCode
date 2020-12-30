@@ -110,13 +110,13 @@ _objc_indexed_classes:
 	// isa in p16 is indexed
 	adrp	x10, _objc_indexed_classes@PAGE         // 命令解释 line 373
 	add	x10, x10, _objc_indexed_classes@PAGEOFF
-	ubfx	p16, p16, #ISA_INDEX_SHIFT, #ISA_INDEX_BITS  // extract index
+	ubfx	p16, p16, #ISA_INDEX_SHIFT, #ISA_INDEX_BITS  // extract index   // 位段提取指令 将 p16 中 ISA_INDEX_SHIFT 位起，偏移 ISA_INDEX_BITS 位提取到 p16 最低有效位
 	ldr	p16, [x10, p16, UXTP #PTRSHIFT]	// load class from array
 1:
 
-#elif __LP64__ // 如果int是32位，long是64位，pointer 也是64位，那么该机器就是 LP64 的，其中的L表示 Long，P表示 Pointer
+#elif __LP64__      // 如果 int 是 32 位，long 是 64 位，pointer 也是 64 位，那么该机器就是 LP64 的，其中的 L 表示 Long，P 表示 Pointer
 	// 64-bit packed isa
-	and	p16, $0, #ISA_MASK  // #define ISA_MASK 0x0000000ffffffff8ULL 找到 isa 变量中的 Class 并放入 p16
+	and	p16, $0, #ISA_MASK  // $0 & ISA_MASK 存储 p16（#define ISA_MASK 0x0000000ffffffff8ULL）
 
 #else
 	// 32-bit raw isa
@@ -256,7 +256,7 @@ LExit$0:
 	and	w11, w11, 0xffff	// p11 = mask
 #endif
 	and	w12, w1, w11		// x12 = _cmd & mask
-	add	p12, p10, p12, LSL #(1+PTRSHIFT)        // bucket 所在地址
+	add	p12, p10, p12, LSL #(1+PTRSHIFT)        // p12 查找起点
 		             // p12 = buckets + ((_cmd & mask) << (1+PTRSHIFT))
 
 	ldp	p17, p9, [x12]		// {imp, sel} = *bucket
@@ -274,7 +274,7 @@ LExit$0:
 
 3:	// wrap: p12 = first bucket, w11 = mask
 	add	p12, p12, w11, UXTW #(1+PTRSHIFT)
-		                        // p12 = buckets + (mask << 1+PTRSHIFT)
+		                        // p12 = buckets + (mask << 1+PTRSHIFT)，移动到最后边位置
 
 	// Clone scanning loop to miss instead of hang when cache is corrupt.
 	// The slow path may detect any corruption and halt later.
@@ -359,25 +359,25 @@ _objc_debug_taggedpointer_ext_classes:
 #else
 	b.eq	LReturnZero
 #endif
-	ldr	p13, [x0]		    // p13 = isa    x0 指向内存的前 64 位放到 p13（即是 objc_object 的 isa 成员变量）
+	ldr	p13, [x0]		    // p13 = isa    ldr 是  Load Register 的缩写，[] 为间接寻址，表示从 x0 所表示的地址中取出 8 字节数据，放到 x13 中。x0 中是 self 的地址，所以取出来的数据是 isa 的值
 	GetClassFromIsa_p16 p13 // p16 = class  找到 isa 中对应的 Class
 LGetIsaDone:
 	CacheLookup NORMAL		// calls imp or objc_msgSend_uncached
 
 #if SUPPORT_TAGGED_POINTERS
-LNilOrTagged:               // Tagged Pointer 指针最高位是1(符号位)，所以肯定小于0
+LNilOrTagged:               // Tagged Pointer 标记位是 _OBJC_TAG_MASK，最高位是 1 (符号位) 一定小于 0
 	b.eq	LReturnZero		// nil check
 
 	// tagged
 
-    // 得到一个大小为4KB的页的基址，而且在该页中有全局变量 objc_debug_taggedpointer_classes 的地址；
+    // 得到一个大小为 4 KB的页的基址，而且在该页中有全局变量 objc_debug_taggedpointer_classes 的地址；
     // ADRP 就是将该页的基址存到寄存器 X10 中
 	adrp	x10, _objc_debug_taggedpointer_classes@PAGE
 
     // _objc_debug_taggedpointer_classes@PAGEOFF 是一个偏移量，这样就得到了 objc_debug_taggedpointer_classes 的地址 X10
 	add	x10, x10, _objc_debug_taggedpointer_classes@PAGEOFF
 
-    // 位段提取指令 将 x0 中 60 位起偏移 4 位提取到 x11 最低有效位(其实就是提取 index )
+    // 位段提取指令 将 x0 中 60 位起偏移 4 位提取到 x11 最低有效位（其实就是提取 index）
 	ubfx	x11, x0, #60, #4
 
     // 将存储器地址为 x10＋x11<<3 的字数据读入寄存器 x16，
@@ -400,7 +400,7 @@ LNilOrTagged:               // Tagged Pointer 指针最高位是1(符号位)，�
 LReturnZero:
 	// x0 is already zero
 	mov	x1, #0
-	movi	d0, #0          // d0-d3表示v0-v3的低32位
+	movi	d0, #0          // d0-d3 表示 v0-v3 的低 32 位
 	movi	d1, #0
 	movi	d2, #0
 	movi	d3, #0
