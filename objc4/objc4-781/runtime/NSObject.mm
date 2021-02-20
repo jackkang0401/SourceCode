@@ -110,7 +110,7 @@ struct SideTable {
     weak_table_t weak_table;
 
     SideTable() {
-        memset(&weak_table, 0, sizeof(weak_table));
+        memset(&weak_table, 0, sizeof(weak_table));     // 初始化各个 entry
     }
 
     ~SideTable() {
@@ -1970,7 +1970,7 @@ id objc_unretainedObject(objc_objectptr_t pointer) { return (id)pointer; }
 // convert id to objc_objectptr_t, no ownership transfer.
 objc_objectptr_t objc_unretainedPointer(id object) { return object; }
 
-
+// 动态库首次映射镜像时调用
 void arr_init(void) 
 {
     AutoreleasePoolPage::init();

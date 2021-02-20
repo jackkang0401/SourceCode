@@ -822,15 +822,15 @@ class StripedMap {
 #else
     enum { StripeCount = 64 };
 #endif
-
+    // 内嵌结构体
     struct PaddedT {
-        T value alignas(CacheLineSize);
+        T value alignas(CacheLineSize);     // alignas 关键字，设置内存中对齐方式，最小是8字节对齐，可以是16,32,64,128等
     };
 
     PaddedT array[StripeCount];
 
     static unsigned int indexForPointer(const void *p) {
-        uintptr_t addr = reinterpret_cast<uintptr_t>(p);
+        uintptr_t addr = reinterpret_cast<uintptr_t>(p);    // 处理无关类型之间的转换，产生一个新值，与原始参数有完全相同的比特位，这里转换为 uintptr_t
         return ((addr >> 4) ^ (addr >> 9)) % StripeCount;
     }
 
@@ -838,14 +838,20 @@ class StripedMap {
     T& operator[] (const void *p) { 
         return array[indexForPointer(p)].value; 
     }
+    /*
+        1. const 对象只能访问 const 函数
+        2. 非 const 对象可访问访问 const/非 const 函数(优先访问非 const)
+        3. const 函数可访问 const/非const 数据成员
+        4. const 指针修饰的是被隐藏的 this 指针所指向的内存空间，修饰的是 this 指针
+     */
     const T& operator[] (const void *p) const { 
-        return const_cast<StripedMap<T>>(this)[p]; 
+        return const_cast<StripedMap<T>>(this)[p];  // const_cast 转换符是用来移除变量的 const 或 volatile 限定符
     }
 
     // Shortcuts for StripedMaps of locks.
     void lockAll() {
         for (unsigned int i = 0; i < StripeCount; i++) {
-            array[i].value.lock();
+            array[i].value.lock();                  // value 为类型 T
         }
     }
 
@@ -902,7 +908,7 @@ class StripedMap {
 // which means 0x80..00 is also disguised as itself but we don't care.
 // Note that weak_entry_t knows about this encoding.
 template <typename T>
-class DisguisedPtr {
+class DisguisedPtr {            // 对泛型对象的指针的封装，通过这个泛型类来解决内存泄露的问题
     uintptr_t value;
 
     static uintptr_t disguise(T* ptr) {
@@ -920,25 +926,25 @@ class DisguisedPtr {
     DisguisedPtr(const DisguisedPtr<T>& ptr) 
         : value(ptr.value) { }
 
-    DisguisedPtr<T>& operator = (T* rhs) {
+    DisguisedPtr<T>& operator = (T* rhs) {                      // 赋值
         value = disguise(rhs);
         return *this;
     }
-    DisguisedPtr<T>& operator = (const DisguisedPtr<T>& rhs) {
+    DisguisedPtr<T>& operator = (const DisguisedPtr<T>& rhs) {  // 引用赋值
         value = rhs.value;
         return *this;
     }
 
-    operator T* () const {
+    operator T* () const {              // 类型转换重载，如果需要 T* 的地方，传递一个 DisguisedPtr 对象会转型为 T*
         return undisguise(value);
     }
-    T* operator -> () const { 
+    T* operator -> () const {           // 重载 ->，返回值通过 -> 调用方法
         return undisguise(value);
     }
-    T& operator * () const { 
+    T& operator * () const {            // 重载 *
         return *undisguise(value);
     }
-    T& operator [] (size_t i) const {
+    T& operator [] (size_t i) const {   // 重载 []
         return undisguise(value)[i];
     }
 

@@ -273,8 +273,8 @@ static void weak_compact_maybe(weak_table_t *weak_table)
     size_t old_size = TABLE_SIZE(weak_table);
 
     // Shrink if larger than 1024 buckets and at most 1/16 full.
-    if (old_size >= 1024  && old_size / 16 >= weak_table->num_entries) {
-        weak_resize(weak_table, old_size / 8);
+    if (old_size >= 1024  && old_size / 16 >= weak_table->num_entries) {    // (mask + 1) >= 1024 && num_entries <= 1/16
+        weak_resize(weak_table, old_size / 8);                              // 减小空间为原来的 1/8
         // leaves new table no more than 1/2 full
     }
 }
@@ -314,7 +314,7 @@ weak_entry_for_referent(weak_table_t *weak_table, objc_object *referent)
 
     if (!weak_entries) return nil;
 
-    size_t begin = hash_pointer(referent) & weak_table->mask;
+    size_t begin = hash_pointer(referent) & weak_table->mask;           // 计算起始下标
     size_t index = begin;
     size_t hash_displacement = 0;
     while (weak_table->weak_entries[index].referent != referent) {
@@ -462,7 +462,7 @@ void
 weak_clear_no_lock(weak_table_t *weak_table, id referent_id) 
 {
     objc_object *referent = (objc_object *)referent_id;
-
+    // 查找 entry
     weak_entry_t *entry = weak_entry_for_referent(weak_table, referent);
     if (entry == nil) {
         /// XXX shouldn't happen, but does with mismatched CF/objc
@@ -487,7 +487,7 @@ weak_clear_no_lock(weak_table_t *weak_table, id referent_id)
         objc_object **referrer = referrers[i];
         if (referrer) {
             if (*referrer == referent) {
-                *referrer = nil;
+                *referrer = nil;            // 每个弱引用都置为 nil
             }
             else if (*referrer) {
                 _objc_inform("__weak variable at %p holds %p instead of %p. "
@@ -500,6 +500,6 @@ weak_clear_no_lock(weak_table_t *weak_table, id referent_id)
         }
     }
     
-    weak_entry_remove(weak_table, entry);
+    weak_entry_remove(weak_table, entry);   // 移除 entry
 }
 

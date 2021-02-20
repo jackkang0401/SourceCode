@@ -36,7 +36,7 @@ namespace objc {
 // ExplicitInit / LazyInit wrap doing it the hard way.
 template <typename Type>
 class ExplicitInit {
-    alignas(Type) uint8_t _storage[sizeof(Type)];
+    alignas(Type) uint8_t _storage[sizeof(Type)];       // 定义了一个 sizeof(Type) 大小，类型为 uint8_t 的数组，uint8_t 占用一个字节
 
 public:
     template <typename... Ts>
