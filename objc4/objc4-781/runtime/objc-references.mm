@@ -51,8 +51,8 @@ class ObjcAssociation {
 public:
     ObjcAssociation(uintptr_t policy, id value) : _policy(policy), _value(value) {}
     ObjcAssociation() : _policy(0), _value(nil) {}
-    ObjcAssociation(const ObjcAssociation &other) = default;
-    ObjcAssociation &operator=(const ObjcAssociation &other) = default;
+    ObjcAssociation(const ObjcAssociation &other) = default;                // 赋值构造函数采用默认
+    ObjcAssociation &operator=(const ObjcAssociation &other) = default;     // 赋值操作符采用默认
     ObjcAssociation(ObjcAssociation &&other) : ObjcAssociation() {
         swap(other);
     }
