@@ -104,11 +104,11 @@ _objc_indexed_classes:
 #if SUPPORT_INDEXED_ISA
 	// Indexed isa
 	mov	p16, $0			// optimistically set dst = src
-	tbz	p16, #ISA_INDEX_IS_NPI_BIT, 1f	// done if not non-pointer isa
+	tbz	p16, #ISA_INDEX_IS_NPI_BIT, 1f	// done if not non-pointer isa  // 测试位不为 0 发生跳转
 	// isa in p16 is indexed
 	adrp	x10, _objc_indexed_classes@PAGE
 	add	x10, x10, _objc_indexed_classes@PAGEOFF
-	ubfx	p16, p16, #ISA_INDEX_SHIFT, #ISA_INDEX_BITS  // extract index
+	ubfx	p16, p16, #ISA_INDEX_SHIFT, #ISA_INDEX_BITS  // extract index // 位段提取指令 将 p16 中 ISA_INDEX_SHIFT 位起，偏移 ISA_INDEX_BITS 位提取到 p16 最低有效位
 	ldr	p16, [x10, p16, UXTP #PTRSHIFT]	// load class from array
 1:
 
@@ -362,7 +362,7 @@ _objc_debug_taggedpointer_ext_classes:
 #else
 	b.eq	LReturnZero
 #endif
-	ldr	p13, [x0]		                // p13 = isa，表示从 x0 所表示的地址中取出 8 字节数据，放到 x13 中。x0 中是 self 的地址，所以取出来的数据是 isa 的值
+	ldr	p13, [x0]		                // p13 = isa，表示从 x0 所表示的地址中取出 8 byte 数据，放到 x13 中。x0 中是 self 的地址，所以取出来的数据是 isa 的值
 	GetClassFromIsa_p16 p13		        // p16 = class
 LGetIsaDone:
 	// calls imp or objc_msgSend_uncached
@@ -374,13 +374,13 @@ LNilOrTagged:
 
 	// tagged，高 4 位为索引，到 Tagged Pointer Table 中查找
 	adrp	x10, _objc_debug_taggedpointer_classes@PAGE     // 得到一个大小为 4 KB的页的基址，该页包含全局变量 objc_debug_taggedpointer_classes 的地址
-	add	x10, x10, _objc_debug_taggedpointer_classes@PAGEOFF // _objc_debug_taggedpointer_classes@PAGEOFF 为 objc_debug_taggedpointer_classes 在 4 KB页中的偏移量
+	add	x10, x10, _objc_debug_taggedpointer_classes@PAGEOFF // 得到 objc_debug_taggedpointer_classes 在 4 KB页中的偏移量
 	ubfx	x11, x0, #60, #4                                // 位段提取指令 将 x0 中 60 位起偏移 4 位提取到 x11 最低有效位（其实就是提取 index）
-	ldr	x16, [x10, x11, LSL #3]         // p16 = class      // 左移三位是因为 _objc_debug_taggedpointer_classes 是 8 个 byte 为单位来偏移的
-	adrp	x10, _OBJC_CLASS_$___NSUnrecognizedTaggedPointer@PAGE   // NSUnrecognizedTaggedPointer 为占位符，当为 extend tagged pointer 时，得到的 cls 会是 __NSUnrecognizedTaggedPointer
+	ldr	x16, [x10, x11, LSL #3]         // p16 = class      // 左移三位是因为 _objc_debug_taggedpointer_classes 是 8 byte 为单位来偏移的
+	adrp	x10, _OBJC_CLASS_$___NSUnrecognizedTaggedPointer@PAGE   // 当为 extend tagged pointer 时，得到的 cls 会是 __NSUnrecognizedTaggedPointer
 	add	x10, x10, _OBJC_CLASS_$___NSUnrecognizedTaggedPointer@PAGEOFF
 	cmp	x10, x16
-	b.ne	LGetIsaDone                 // 不等于说明是 ext classes
+	b.ne	LGetIsaDone
 
 	// ext tagged，由于高 4 位都为 1，那么接下来的 8 位表示索引，到 Extend Tagged Pointer Table 表中查找
 	adrp	x10, _objc_debug_taggedpointer_ext_classes@PAGE
@@ -398,7 +398,7 @@ LReturnZero:
 	movi	d1, #0
 	movi	d2, #0
 	movi	d3, #0
-	ret
+	ret                                 // 近返回指令。执行的时候，处理器从栈中弹出一个字到IP中
 
 	END_ENTRY _objc_msgSend
 

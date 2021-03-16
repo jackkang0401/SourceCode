@@ -105,8 +105,7 @@ _objc_indexed_classes:
 #if SUPPORT_INDEXED_ISA
 	// Indexed isa
 	mov	p16, $0			// optimistically set dst = src
-    // 如果 p16 + ISA_INDEX_IS_NPI_BIT 为 0 跳转
-	tbz	p16, #ISA_INDEX_IS_NPI_BIT, 1f	// done if not non-pointer isa
+	tbz	p16, #ISA_INDEX_IS_NPI_BIT, 1f	// done if not non-pointer isa // 测试位不为 0 发生跳转
 	// isa in p16 is indexed
 	adrp	x10, _objc_indexed_classes@PAGE         // 命令解释 line 373
 	add	x10, x10, _objc_indexed_classes@PAGEOFF
