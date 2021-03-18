@@ -925,7 +925,7 @@ void _objc_init(void)
     cache_init();
     _imp_implementationWithBlock_init();
 
-    _dyld_objc_notify_register(&map_images, load_images, unmap_image);
+    _dyld_objc_notify_register(&map_images, load_images, unmap_image); // 注册 dyld 加载 images 的各个事件回调
 
 #if __OBJC2__
     didCallDyldNotifyRegister = true;
