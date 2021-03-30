@@ -237,14 +237,14 @@ static void weak_resize(weak_table_t *weak_table, size_t new_size)
 
     weak_entry_t *old_entries = weak_table->weak_entries;
     weak_entry_t *new_entries = (weak_entry_t *)
-        calloc(new_size, sizeof(weak_entry_t));
+        calloc(new_size, sizeof(weak_entry_t));             // 分配新的内存空间
 
     weak_table->mask = new_size - 1;
     weak_table->weak_entries = new_entries;
     weak_table->max_hash_displacement = 0;
     weak_table->num_entries = 0;  // restored by weak_entry_insert below
     
-    if (old_entries) {
+    if (old_entries) {                                      // 将旧数据插入新内存空间
         weak_entry_t *entry;
         weak_entry_t *end = old_entries + old_size;
         for (entry = old_entries; entry < end; entry++) {

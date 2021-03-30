@@ -299,15 +299,15 @@ storeWeak(id *location, objc_object *newObj)
 
     SideTable::lockTwo<haveOld, haveNew>(oldTable, newTable);
 
-    if (haveOld  &&  *location != oldObj) {
+    if (haveOld  &&  *location != oldObj) {     // location 应该与 oldObj 保持一致，如果不同，说明当前的 location 已经处理过 oldObj，又被其他线程所修改
         SideTable::unlockTwo<haveOld, haveNew>(oldTable, newTable);
-        goto retry;
+        goto retry;                             // 如果旧值改变就重新获取旧值相关联的表
     }
 
     // Prevent a deadlock between the weak reference machinery
     // and the +initialize machinery by ensuring that no 
     // weakly-referenced object has an un-+initialized isa.
-    if (haveNew  &&  newObj) {
+    if (haveNew  &&  newObj) {                  // 在弱引用之前，要确保对象已经成功初始化
         Class cls = newObj->getIsa();
         if (cls != previouslyInitializedClass  &&  
             !((objc_class *)cls)->isInitialized()) 
@@ -321,9 +321,9 @@ storeWeak(id *location, objc_object *newObj)
             // then we may proceed but it will appear initializing and 
             // not yet initialized to the check above.
             // Instead set previouslyInitializedClass to recognize it on retry.
-            previouslyInitializedClass = cls;
+            previouslyInitializedClass = cls;   // 防止 +initialize 内部调用 storeWeak 产生死锁
 
-            goto retry;
+            goto retry;                         // 初始化完成，重试
         }
     }
 

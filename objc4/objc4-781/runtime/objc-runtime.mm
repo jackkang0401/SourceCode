@@ -395,10 +395,10 @@ void environ_init(void)
     // when some malloc debugging is enabled 
     // and OBJC_DEBUG_POOL_ALLOCATION is not set to something other than NO.
     if (maybeMallocDebugging) {
-        const char *insert = getenv("DYLD_INSERT_LIBRARIES");
-        const char *zombie = getenv("NSZombiesEnabled");
-        const char *pooldebug = getenv("OBJC_DEBUG_POOL_ALLOCATION");
-        if ((getenv("MallocStackLogging")
+        const char *insert = getenv("DYLD_INSERT_LIBRARIES");           // 可通过此设置，重写动态链接库中的函数，实现hook功能
+        const char *zombie = getenv("NSZombiesEnabled");                // 僵尸对象
+        const char *pooldebug = getenv("OBJC_DEBUG_POOL_ALLOCATION");   // 当 autorelease pools 出现乱序时停机，并允许堆调试器跟踪 autorelease pools
+        if ((getenv("MallocStackLogging")                               // 启用 malloc 堆栈记录
              || getenv("MallocStackLoggingNoCompact")
              || (zombie && (*zombie == 'Y' || *zombie == 'y'))
              || (insert && strstr(insert, "libgmalloc")))
