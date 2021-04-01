@@ -5907,7 +5907,7 @@ static Method _class_getMethod(Class cls, SEL sel)
 * class_getInstanceMethod.  Return the instance method for the
 * specified class and selector.
 **********************************************************************/
-Method class_getInstanceMethod(Class cls, SEL sel)
+Method class_getInstanceMethod(Class cls, SEL sel)          // 查找实例中的方法，不查缓存，但会缓存方法
 {
     if (!cls  ||  !sel) return nil;
 
@@ -5919,11 +5919,11 @@ Method class_getInstanceMethod(Class cls, SEL sel)
 #warning fixme build and search caches
         
     // Search method lists, try method resolver, etc.
-    lookUpImpOrForward(nil, sel, cls, LOOKUP_RESOLVER);
+    lookUpImpOrForward(nil, sel, cls, LOOKUP_RESOLVER);     // 缓存方法
 
 #warning fixme build and search caches
 
-    return _class_getMethod(cls, sel);
+    return _class_getMethod(cls, sel);                      // 查找实例中的方法
 }
 
 
@@ -6002,7 +6002,7 @@ static void resolveInstanceMethod(id inst, SEL sel, Class cls)
 
     // Cache the result (good or bad) so the resolver doesn't fire next time.
     // +resolveInstanceMethod adds to self a.k.a. cls
-    IMP imp = lookUpImpOrNil(inst, sel, cls);
+    IMP imp = lookUpImpOrNil(inst, sel, cls);               // 查找方法，找到说明已动态添加
 
     if (resolved  &&  PrintResolving) {
         if (imp) {
@@ -6101,7 +6101,7 @@ IMP lookUpImpOrForward(id inst, SEL sel, Class cls, int behavior)
 
     // Optimistic cache lookup
     if (fastpath(behavior & LOOKUP_CACHE)) {
-        imp = cache_getImp(cls, sel);
+        imp = cache_getImp(cls, sel);                               // 查找当前类缓存
         if (imp) goto done_nolock;
     }
 
@@ -6124,7 +6124,7 @@ IMP lookUpImpOrForward(id inst, SEL sel, Class cls, int behavior)
     // objc_duplicateClass, objc_initializeClassPair or objc_allocateClassPair.
     //
     // TODO: this check is quite costly during process startup.
-    checkIsKnownClass(cls);
+    checkIsKnownClass(cls);                                         // 判断当前 cls 是否为已知类，防止人为制造类，进行CFI攻击
 
     if (slowpath(!cls->isRealized())) {
         cls = realizeClassMaybeSwiftAndLeaveLocked(cls, runtimeLock);
@@ -6132,7 +6132,7 @@ IMP lookUpImpOrForward(id inst, SEL sel, Class cls, int behavior)
     }
 
     if (slowpath((behavior & LOOKUP_INITIALIZE) && !cls->isInitialized())) {
-        cls = initializeAndLeaveLocked(cls, inst, runtimeLock);
+        cls = initializeAndLeaveLocked(cls, inst, runtimeLock);     // 递归调用类/元类继承链的 initialize 方法
         // runtimeLock may have been dropped but is now locked again
 
         // If sel == initialize, class_initialize will send +initialize and 
@@ -6153,26 +6153,26 @@ IMP lookUpImpOrForward(id inst, SEL sel, Class cls, int behavior)
 
     for (unsigned attempts = unreasonableClassCount();;) {
         // curClass method list.
-        Method meth = getMethodNoSuper_nolock(curClass, sel);
+        Method meth = getMethodNoSuper_nolock(curClass, sel);       // 从自己的 methods 里面查找
         if (meth) {
             imp = meth->imp;
             goto done;
         }
 
-        if (slowpath((curClass = curClass->superclass) == nil)) {
+        if (slowpath((curClass = curClass->superclass) == nil)) {   // 查找父类
             // No implementation found, and method resolver didn't help.
             // Use forwarding.
             imp = forward_imp;
-            break;
+            break;                                                  // 父类为 nil，给 imp 赋值 forward_imp，跳出循环
         }
 
         // Halt if there is a cycle in the superclass chain.
-        if (slowpath(--attempts == 0)) {
+        if (slowpath(--attempts == 0)) {                            // 防止死循环，给一个出口
             _objc_fatal("Memory corruption in class list.");
         }
 
         // Superclass cache.
-        imp = cache_getImp(curClass, sel);
+        imp = cache_getImp(curClass, sel);                          // curClass 已经被赋值为它的父类，这里从父类的缓存里面找 imp
         if (slowpath(imp == forward_imp)) {
             // Found a forward:: entry in a superclass.
             // Stop searching, but don't cache yet; call method
@@ -6189,11 +6189,11 @@ IMP lookUpImpOrForward(id inst, SEL sel, Class cls, int behavior)
 
     if (slowpath(behavior & LOOKUP_RESOLVER)) {
         behavior ^= LOOKUP_RESOLVER;
-        return resolveMethod_locked(inst, sel, cls, behavior);
+        return resolveMethod_locked(inst, sel, cls, behavior);      // 消息转发第一步，查看是否动态添加了方法
     }
 
  done:
-    log_and_fill_cache(cls, imp, sel, inst, curClass);
+    log_and_fill_cache(cls, imp, sel, inst, curClass);              // 写入缓存
     runtimeLock.unlock();
  done_nolock:
     if (slowpath((behavior & LOOKUP_NIL) && imp == forward_imp)) {
