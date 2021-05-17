@@ -6153,7 +6153,7 @@ IMP lookUpImpOrForward(id inst, SEL sel, Class cls, int behavior)
 
     for (unsigned attempts = unreasonableClassCount();;) {
         // curClass method list.
-        Method meth = getMethodNoSuper_nolock(curClass, sel);       // 从自己的 methods 里面查找
+        Method meth = getMethodNoSuper_nolock(curClass, sel);       // 从自己的 methods 里面查找（不查缓存）
         if (meth) {
             imp = meth->imp;
             goto done;
@@ -6172,7 +6172,7 @@ IMP lookUpImpOrForward(id inst, SEL sel, Class cls, int behavior)
         }
 
         // Superclass cache.
-        imp = cache_getImp(curClass, sel);                          // curClass 已经被赋值为它的父类，这里从父类的缓存里面找 imp
+        imp = cache_getImp(curClass, sel);                          // 从父类的缓存里面找 imp (curClass 已经被赋值为它的父类)
         if (slowpath(imp == forward_imp)) {
             // Found a forward:: entry in a superclass.
             // Stop searching, but don't cache yet; call method
